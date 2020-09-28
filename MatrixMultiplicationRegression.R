@@ -1,6 +1,8 @@
+library(matlib)
 options(digits = 3)
 
-data <- read.csv(file="states.csv", header=T)[,c(-1)]
+predata <- read.csv(file="states.csv", header=T)
+data <- predata[,-1]
 
 X <- as.matrix(cbind(data.frame(matrix(1,nrow(data))),data[,-1]))
 Y <- as.matrix(data[,1,drop=FALSE])
@@ -60,8 +62,8 @@ pScores <- pt(abs(tScores)*-1, DF) *2
 
 leverage <- diag(FinalMatrix)
 
-dataWLeverage <- cbind(data,yhat,residuals,stdErrs,leverage)
-colnames(dataWLeverage) <- c(colnames(data),"yhat","residuals","stdErrs","leverage")
+dataWLeverage <- cbind(predata,yhat,residuals,stdErrs,leverage)
+colnames(dataWLeverage) <- c(colnames(predata),"yhat","residuals","stdErrs","leverage")
 plot(dataWLeverage[,"Poverty"],dataWLeverage[,"leverage"])
 
 cterms <- (cbind(coeff,tScores,pScores))
