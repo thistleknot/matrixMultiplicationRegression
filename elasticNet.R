@@ -68,6 +68,76 @@ results2[order(results2[,2],decreasing=TRUE),]
 
 finalResults <- results2[order(results2[,2],decreasing=TRUE),][results2[order(results2[,2],decreasing=TRUE),2]>0,]
 
-rownames(finalResults)
+finalNames <- rownames(finalResults)
+
+formula = paste(colnames(Y)~finalNames)
+
+f <- as.formula(
+  paste(colnames(Y), 
+        paste(finalNames, collapse = " + "), 
+        sep = " ~ "))
+
+model <- lm(f,data)
+
+summary(model)
 
 
+
+
+
+
+library(matlib)
+library(xgboost)
+options(digits = 3)
+
+preData <- read.csv(file="states.csv", header=T)
+data <- preData[,c(-1)]
+
+X <- as.matrix(cbind(data.frame(matrix(1,nrow(data))),data[,-1]))
+Y <- as.matrix(data[,1,drop=FALSE])
+
+model <- 
+  xgboost(data = as.matrix(X)[,-1], 
+          label = Y,
+          booster = "gblinear", 
+          objective = "reg:squarederror", 
+          max.depth = 5, 
+          nround = 25, 
+          lambda = bestLambda, 
+          lambda_bias = 0, 
+          alpha = bestAlpha)
+
+model$niter
+
+mat <- xgb.importance (feature_names = colnames(X[,-1]),model = model)
+xgb.plot.importance (importance_matrix = mat[1:ncol(X[,-1])]) 
+
+source("shap.R")
+shap_result = shap.score.rank(xgb_model = model, 
+                              X_train =X[,-1],
+                              shap_approx = F
+)
+
+# `shap_approx` comes from `approxcontrib` from xgboost documentation. 
+# Faster but less accurate if true. Read more: help(xgboost)
+
+## Plot var importance based on SHAP
+var_importance(shap_result, top_n=ncol(X[,-1]))
+
+## Prepare data for top N variables
+shap_long = shap.prep(shap = shap_result,
+                      X_train = X[,-1] , 
+                      top_n = 9
+)
+
+## Plot shap overall metrics
+plot.shap.summary(data_long = shap_long)
+
+
+## 
+xgb.plot.shap(data = X[,-1], # input data
+              model = model, # xgboost model
+              features = names(shap_result$mean_shap_score[1:ncol(X[,-1])]), # only top 10 var
+              n_col = 3, # layout option
+              plot_loess = T # add red line to plot
+)
