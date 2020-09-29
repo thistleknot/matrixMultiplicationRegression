@@ -9,6 +9,8 @@ library(glmnet)  # for ridge regression
 library(dplyr)   # for data cleaning
 library(psych)   # for function tr() to compute trace of a matrix
 library(parallel)
+library(MLmetrics)
+library(pls)
 
 preData <- read.csv(file="states.csv", header=T)
 data <- preData[,c(-1)]
@@ -20,6 +22,38 @@ X <- data %>% select(-Poverty) %>% as.matrix()
 seed <- sample(1:100,1)
 print(seed)
 set.seed(seed)
+
+f <- as.formula(
+  paste(colnames(Y), 
+        paste(colnames(X[,-1]), collapse = " + "), 
+        sep = " ~ "))
+
+pls.model <- plsr(f, data = data, validation= "CV")
+
+# Find the number of dimensions with lowest cross validation error
+cv = RMSEP(pls.model)
+best.dims = which.min(cv$val[estimate = "adjCV", , ]) - 1
+
+# Rerun the model
+pls.model = plsr(f, data = data, ncomp = best.dims)
+
+coefficients = names(round(coef(pls.model)[,1,1],2))
+
+finalResults <- round(coef(pls.model)[,1,1],2)
+
+finalNames <- names(finalResults[abs(finalResults)>0])
+
+formula = paste(colnames(Y)~finalNames)
+
+f <- as.formula(
+  paste(colnames(Y), 
+        paste(finalNames, collapse = " + "), 
+        sep = " ~ "))
+
+model <- lm(f,data)
+
+summary(model)
+
 
 #train_rows <- sample(1:nrow(data), .66*nrow(data))
 #x.train <- X[train_rows,]
@@ -141,3 +175,22 @@ xgb.plot.shap(data = X[,-1], # input data
               n_col = 3, # layout option
               plot_loess = T # add red line to plot
 )
+
+shap_result$mean_shap_score
+
+summary(lm(Poverty~Infant.Mort,data))
+
+summary(lm(Poverty~Infant.Mort+Income,data))
+
+summary(lm(Poverty~Infant.Mort+Income+White,data))
+
+summary(lm(Poverty~Infant.Mort+Income+White+University,data))
+
+summary(lm(Poverty~Infant.Mort+Income+White+University+Crime,data))
+
+summary(lm(Poverty~Infant.Mort+Income+White+University+Crime+Unemployed,data))
+
+summary(lm(Poverty~Infant.Mort+Income+White+University+Crime+Unemployed+Doctors,data))
+
+summary(lm(Poverty~Infant.Mort+Income+White+University+Crime+Unemployed+Doctors+Population,data))
+
