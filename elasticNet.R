@@ -112,6 +112,9 @@ model <- lm(f,data)
 
 summary(model)
 
+plot(model$fitted.values,model$model$Poverty)
+abline(lm(model$fitted.values~model$model$Poverty))
+
 
 #train_rows <- sample(1:nrow(data), .66*nrow(data))
 #x.train <- X[train_rows,]
