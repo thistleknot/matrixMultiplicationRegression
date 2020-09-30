@@ -91,3 +91,5 @@ MAPE(set.test[,1],predictions)
 plot(set.test[,1],predictions)
 abline(lm(set.test[,1]~predictions))
 cor(set.test[,1],predictions)
+
+summary(lm(f,data2))
