@@ -1,5 +1,5 @@
 library(matlib)
-library(xgboost)
+
 options(digits = 3)
 
 data <- read.csv(file="states.csv",header = TRUE)
@@ -14,8 +14,19 @@ set.seed(seed)
 trainSetIndex <- (sample(1:(nr),(nr)*.8))
 testSetIndex <- c(1:nr)[(1:nr) %in% c(trainSetIndex)==FALSE]
 
+normalizeResponse <- "Y"
+
 set.train <- data2[trainSetIndex, ]
 set.test <- data2[testSetIndex,]
+
+if(normalizeResponse=="Y")
+{
+        trainParam <- caret::preProcess(as.matrix(set.train))
+        
+        set.train <- predict(trainParam, set.train)
+        
+        set.test <- predict(trainParam, set.test)
+}
 
 numFolds = 10
 
@@ -84,68 +95,32 @@ model <- lm(f,set.train)
 
 summary(model)
 
-model <- 
-xgboost(data = as.matrix(set.train[,-1]), 
-        label = as.matrix(set.train[,1,drop=FALSE]),
-        booster = "gblinear", 
-        objective = "reg:squarederror", 
-        max.depth = 10, 
-        nround = 100, 
-        lambda = bestLambda, 
-        lambda_bias = 0, 
-        alpha = bestAlpha)
-        
-model$niter
+fitted <- model$fitted.values
+trained <- set.train[,1] 
+tested <- set.test[,1]
 
-model2 <- xgboost::xgb.cv(data = as.matrix(set.train[,-1]), 
-                nfold=numFolds,
-                label = as.matrix(set.train[,1,drop=FALSE]),
-                booster = "gblinear", 
-                objective = "reg:squarederror", 
-                max.depth = 10, 
-                nround = 100, 
-                lambda = bestLambda, 
-                lambda_bias = 0, 
-                alpha = bestAlpha)
+if(normalizeResponse=="Y")
+{
+        fitted <- (fitted * trainParam$std[1]) + trainParam$mean[1]
+        trained <- (trained * trainParam$std[1]) + trainParam$mean[1]
+}
 
-mat <- xgb.importance (feature_names = colnames(set.train[,-1]),model = model2)
-xgb.plot.importance (importance_matrix = mat[1:ncol(set.train[,-1])]) 
+plot(fitted,trained)
+abline(lm(fitted~trained))
 
-source("shap.R")
-shap_result = shap.score.rank(xgb_model = model2, 
-                                   X_train =set.train[,-1],
-                                   shap_approx = F
-)
+cor(trained,model$fitted.values)
 
-# `shap_approx` comes from `approxcontrib` from xgboost documentation. 
-# Faster but less accurate if true. Read more: help(xgboost)
+predictions <- predict(model,set.test)
 
-## Plot var importance based on SHAP
-var_importance(shap_result, top_n=ncol(X))
+if(normalizeResponse=="Y")
+{
+        predictions <- (predictions * trainParam$std[1]) + trainParam$mean[1]
+        tested <- (tested * trainParam$std[1]) + trainParam$mean[1]
+}
+RMSE(predictions,tested)
+MAPE(tested,predictions)
 
-## Prepare data for top N variables
-shap_long = shap.prep(shap = shap_result,
-                           X_train = X , 
-                           top_n = ncol(X)
-)
-
-## Plot shap overall metrics
-plot.shap.summary(data_long = shap_long)
-
-
-## 
-xgb.plot.shap(data = X, # input data
-              model = model, # xgboost model
-              features = names(shap_result$mean_shap_score[1:ncol(X)]), # only top 10 var
-              n_col = 3, # layout option
-              plot_loess = T # add red line to plot
-)
-
-y_pred <- predict(model, as.matrix(set.test[,-1]))
-
-plot(set.test[,1],y_pred)
-abline(lm(set.test[,1]~y_pred))
-
-MAPE(y_pred,set.test[,1])
-RMSE(y_pred,set.test[,1])
+plot(tested,predictions)
+abline(lm(tested~predictions))
+cor(tested,predictions)
 
