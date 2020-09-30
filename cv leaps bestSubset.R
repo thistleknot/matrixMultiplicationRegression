@@ -1,6 +1,7 @@
 library(caret)
 library(leaps)
 library(tidyverse)
+library(car)
 
 data <- read.csv(file="states.csv",header = TRUE)
 data2 <- data[,-1]
@@ -37,7 +38,6 @@ get_model_formula <- function(id, object, outcome){
   # Build model formula
   as.formula(paste0(outcome, "~", predictors))
 }
-
 
 models <- regsubsets(as.formula(paste0(colnames(set.train)[1], "~.")), data = set.train, nvmax = ncol(set.train)-1)
 
@@ -98,9 +98,14 @@ summary(finalModel)
 hist(finalModel$residuals)
 
 par(mfrow = c(2, 3))
-lapply(1:6, function(x)
-  {
-  plot(model,x)
-  })
 
-plot(sort(studres(finalModel)))
+plot(model,1)
+plot(model,2)
+plot(model,3)
+plot(model,4)
+#plot(model,5)
+plot(hatvalues(finalModel),studres(finalModel))
+#plot(cooks.distance(finalModel),studres(finalModel))
+plot(model,6)
+
+leveragePlots(finalModel)
