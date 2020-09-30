@@ -3,6 +3,8 @@ library(leaps)
 library(tidyverse)
 library(car)
 
+normalizeResponse <- "Y"
+
 data <- read.csv(file="states.csv",header = TRUE)
 data2 <- data[,-1]
 
@@ -18,8 +20,15 @@ testSetIndex <- c(1:nr)[(1:nr) %in% c(trainSetIndex)==FALSE]
 set.train <- data2[trainSetIndex, ]
 set.test <- data2[testSetIndex,]
 
-#normalization
-trainParam <- caret::preProcess(as.matrix(set.train))
+#normalization (not being used)
+if(normalizeResponse=="Y")
+{
+  trainParam <- caret::preProcess(as.matrix(set.train))
+  
+  set.train <- predict(trainParam, set.train)
+  
+  set.test <- predict(trainParam, set.test)
+}
 
 #http://www.sthda.com/english/articles/37-model-selection-essentials-in-r/155-best-subsets-regression-essentials-in-r/#:~:text=The%20best%20subsets%20regression%20is,best%20subsets%20regression%20using%20R.
 # id: model id
@@ -80,17 +89,34 @@ f <- as.formula(
 model <- lm(f,set.train)
 summary(model)
 
-plot(model$fitted.values,set.train[,1])
-abline(lm(model$fitted.values~set.train[,1]))
-cor(set.train[,1],model$fitted.values)
+fitted <- model$fitted.values
+trained <- set.train[,1] 
+tested <- set.test[,1]
+
+if(normalizeResponse=="Y")
+{
+  fitted <- (fitted * trainParam$std[1]) + trainParam$mean[1]
+  trained <- (trained * trainParam$std[1]) + trainParam$mean[1]
+}
+
+plot(fitted,trained)
+abline(lm(fitted~trained))
+
+cor(trained,model$fitted.values)
 
 predictions <- predict(model,set.test)
-RMSE(predictions,set.test[,1])
-MAPE(set.test[,1],predictions)
 
-plot(set.test[,1],predictions)
-abline(lm(set.test[,1]~predictions))
-cor(set.test[,1],predictions)
+if(normalizeResponse=="Y")
+{
+  predictions <- (predictions * trainParam$std[1]) + trainParam$mean[1]
+  tested <- (tested * trainParam$std[1]) + trainParam$mean[1]
+}
+RMSE(predictions,tested)
+MAPE(tested,predictions)
+
+plot(tested,predictions)
+abline(lm(tested~predictions))
+cor(tested,predictions)
 
 finalModel <- lm(f,data2)
 summary(finalModel)
