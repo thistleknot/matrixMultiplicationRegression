@@ -1,5 +1,6 @@
 
 library(matlib)
+library(xgboost)
 options(digits = 3)
 
 preData <- read.csv(file="states.csv", header=T)
@@ -7,6 +8,20 @@ data <- preData[,c(-1)]
 
 X <- as.matrix(cbind(data.frame(matrix(1,nrow(data))),data[,-1]))
 Y <- as.matrix(data[,1,drop=FALSE])
+
+model <- 
+xgboost(data = data, 
+        label = Y,
+        booster = "gblinear", 
+        objective = "reg:squarederror", 
+        max.depth = 5, 
+        nround = 2, 
+        lambda = 0, 
+        lambda_bias = 0, 
+        alpha = 0)
+
+mat <- xgb.importance (feature_names = colnames(data),model = model)
+xgb.plot.importance (importance_matrix = mat[1:20]) 
 
 XT <- t(X)
 
