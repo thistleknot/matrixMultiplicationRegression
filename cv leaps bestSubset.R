@@ -2,29 +2,16 @@ library(caret)
 library(leaps)
 library(tidyverse)
 
-
 data <- read.csv(file="states.csv",header = TRUE)
 data2 <- data[,-1]
 
 nr <- nrow(data2)
 
-#start at 200
-#-23 due to lag of donchian channel
 trainSetIndex <- (sample(1:(nr),(nr)*.8))
 testSetIndex <- c(1:nr)[(1:nr) %in% c(trainSetIndex)==FALSE]
 
-# split the dataset 90-10% ratio
-#sorted list but missing some elements
-
-trainingdata <- data2[trainSetIndex,]
-#View(trainingdata)
-
-#double subset
-
-trainIndex <- sort(sample(c(1:length(trainSetIndex)), length(trainSetIndex)*.9))
-
-set.train <- trainingdata[trainIndex, ]
-set.test <- trainingdata[-trainIndex, ]
+set.train <- data2[trainSetIndex, ]
+set.test <- data2[testSetIndex,]
 
 #normalization
 trainParam <- caret::preProcess(as.matrix(set.train))
