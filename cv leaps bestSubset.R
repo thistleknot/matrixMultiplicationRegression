@@ -92,4 +92,15 @@ plot(set.test[,1],predictions)
 abline(lm(set.test[,1]~predictions))
 cor(set.test[,1],predictions)
 
-summary(lm(f,data2))
+finalModel <- lm(f,data2)
+summary(finalModel)
+
+hist(finalModel$residuals)
+
+par(mfrow = c(2, 3))
+lapply(1:6, function(x)
+  {
+  plot(model,x)
+  })
+
+plot(sort(studres(finalModel)))
