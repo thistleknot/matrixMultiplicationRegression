@@ -7,6 +7,10 @@ data2 <- data[,-1]
 
 nr <- nrow(data2)
 
+seed <- sample(1:100,1)
+print(seed)
+set.seed(seed)
+
 trainSetIndex <- (sample(1:(nr),(nr)*.8))
 testSetIndex <- c(1:nr)[(1:nr) %in% c(trainSetIndex)==FALSE]
 
@@ -15,10 +19,6 @@ set.test <- data2[testSetIndex,]
 
 #normalization
 trainParam <- caret::preProcess(as.matrix(set.train))
-
-seed <- sample(1:100,1)
-print(seed)
-set.seed(seed)
 
 #http://www.sthda.com/english/articles/37-model-selection-essentials-in-r/155-best-subsets-regression-essentials-in-r/#:~:text=The%20best%20subsets%20regression%20is,best%20subsets%20regression%20using%20R.
 # id: model id
