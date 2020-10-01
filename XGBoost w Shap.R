@@ -29,9 +29,8 @@ if(normalizeResponse=="Y")
   set.test <- predict(trainParam, set.test)
 }
 
-
 best_param = list()
-best_seednumber = 1234
+#best_seednumber = 1234
 best_loss = Inf
 best_loss_index = 0
 
@@ -47,13 +46,13 @@ for (iter in 1:100) {
   #https://stackoverflow.com/questions/35050846/xgboost-in-r-how-does-xgb-cv-pass-the-optimal-parameters-into-xgb-train
   mdcv <- xgb.cv(data = as.matrix(set.train[,-1]), params = param, nthread=4, nfold=cv.nfold,label = as.matrix(set.train[,1,drop=FALSE]),booster = "gblinear", objective = "reg:squarederror", max.depth = 10, nround = cv.nround, lambda_bias = 0)
   
-  min_loss = min(mdcv$evaluation_log$train_rmse_mean)
-  min_loss_index = which(mdcv$evaluation_log$train_rmse_mean==min_loss)
+  min_loss = min(mdcv$evaluation_log$test_rmse_mean)
+  min_loss_index = which(mdcv$evaluation_log$test_rmse_mean==min_loss)
   
   if (min_loss < best_loss) {
     best_loss = min_loss
     best_loss_index = min_loss_index
-    best_seednumber = seed.number
+    #best_seednumber = 
     best_param = param
   }
 }
@@ -77,6 +76,23 @@ model$niter
 
 #https://www.rdocumentation.org/packages/coefplot/versions/1.2.6/topics/extract.coef.xgb.Booster
 extract.coef(model)
+xgb.gblinear.history(model, class_index = NULL)
+
+predictions <- (rowSums(t(extract.coef(model)[,1]) * set.test[,-1])* trainParam$std[1]) + trainParam$mean[1]
+
+predictions <- (rowSums(t(extract.coef(model)[,1]) * set.test[,-1])* trainParam$std[1]) + trainParam$mean[1]
+
+tested <- set.test[,1]
+tested <- (tested * trainParam$std[1]) + trainParam$mean[1]
+
+RMSE(predictions,tested)
+MAPE(tested,predictions)
+
+plot(tested,predictions)
+abline(lm(tested~predictions))
+cor(tested,predictions)
+
+
 
 mat <- xgb.importance (feature_names = colnames(set.train[,-1]),model = model)
 xgb.plot.importance (importance_matrix = mat[1:ncol(set.train[,-1])]) 
@@ -102,7 +118,8 @@ shap_long = shap.prep(shap = shap_result,
 ## Plot shap overall metrics
 plot.shap.summary(data_long = shap_long)
 
-xgb.gblinear.history(model, class_index = NULL)
+library(popbio)
+mean.list(xgb.gblinear.history(model, class_index = NULL))[min_loss_index,]
 
 ## 
 xgb.plot.shap(data = as.matrix(set.train[,-1]), # input data
