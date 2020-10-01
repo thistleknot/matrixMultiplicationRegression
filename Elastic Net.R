@@ -76,41 +76,9 @@ print(bestLambda)
 
 bestModel <- glmnet(X, Y, alpha = bestAlpha, lambda=bestLambda, standardize = FALSE, family = "gaussian", type.measure="deviance")
 
-results2 <- cbind(rownames(bestModel$beta),round(abs(bestModel$beta)[,1],3))
+predictions <- predict.glmnet(bestModel, as.matrix(set.test[,-1]))
 
-results2[order(results2[,2],decreasing=TRUE),]
-
-finalResults <- results2[order(results2[,2],decreasing=TRUE),][results2[order(results2[,2],decreasing=TRUE),2]>0,]
-
-finalNames <- rownames(finalResults)
-
-formula = paste(colnames(Y)~finalNames)
-
-f <- as.formula(
-        paste(colnames(Y), 
-              paste(finalNames, collapse = " + "), 
-              sep = " ~ "))
-
-model <- lm(f,set.train)
-
-summary(model)
-
-fitted <- model$fitted.values
-trained <- set.train[,1] 
 tested <- set.test[,1]
-
-if(normalizeResponse=="Y")
-{
-        fitted <- (fitted * trainParam$std[1]) + trainParam$mean[1]
-        trained <- (trained * trainParam$std[1]) + trainParam$mean[1]
-}
-
-plot(fitted,trained)
-abline(lm(fitted~trained))
-
-cor(trained,model$fitted.values)
-
-predictions <- predict(model,set.test)
 
 if(normalizeResponse=="Y")
 {
@@ -123,4 +91,7 @@ MAPE(tested,predictions)
 plot(tested,predictions)
 abline(lm(tested~predictions))
 cor(tested,predictions)
+
+
+
 

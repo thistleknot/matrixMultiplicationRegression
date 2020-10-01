@@ -373,10 +373,13 @@ set.train <- back_step_partial_correlation(set.train)
 result <- rmse_backstep(set.train)
 
 predictors <- read.csv(text=paste (result[[2]][[1]], collapse=","),header = FALSE)
-y <- predictors[1]
-x <- predictors[-1]
 
-f <- as.formula(paste(y, paste (x, collapse=" + "), sep=" ~ "))  # new formula
+set.train <- set.train[,c(unlist(predictors))]
+
+y <- set.train[,1,drop=FALSE]
+x <- set.train[,-1,drop=FALSE]
+
+f <- as.formula(paste(colnames(y), paste (colnames(x), collapse=" + "), sep=" ~ "))  # new formula
 
 model <- lm(f,set.train)
 summary(model)

@@ -59,7 +59,6 @@ data.frame(
 )
 
 get_cv_error <- function(model.formula, data){
-  set.seed(1)
   train.control <- trainControl(method = "cv", number = 10)
   cv <- train(model.formula, data = data, method = "lm",
               trControl = train.control)
@@ -89,21 +88,7 @@ f <- as.formula(
 model <- lm(f,set.train)
 summary(model)
 
-fitted <- model$fitted.values
-trained <- set.train[,1] 
 tested <- set.test[,1]
-
-if(normalizeResponse=="Y")
-{
-  fitted <- (fitted * trainParam$std[1]) + trainParam$mean[1]
-  trained <- (trained * trainParam$std[1]) + trainParam$mean[1]
-}
-
-plot(fitted,trained)
-abline(lm(fitted~trained))
-
-cor(trained,model$fitted.values)
-
 predictions <- predict(model,set.test)
 
 if(normalizeResponse=="Y")
