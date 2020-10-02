@@ -130,7 +130,6 @@ newdat<-set.final.pca$x[,1:best.dims]
 
 finalModelPCA <- lm(cbind(set.final[,1,drop=FALSE],newdat))
 
-#library(pca3d)
 library(gtools)
 
 set.final$Groups = quantcut(set.final[,1],3)
@@ -145,5 +144,14 @@ g <- g + theme(legend.direction = 'horizontal',
                legend.position = 'top')
 print(g)
 
-set.final.pca <- dplyr::select(set.final, -c("Groups"))
+library(pca3d)
+options(rgl.printRglwidget = TRUE)
 
+library(rgl)
+bg3d("white")
+labels(set.final.pca$x)
+test <- set.final.pca$x
+rownames(test) <- c("AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY")
+pca3d(test,group=set.final$Groups , show.labels = TRUE ,show.centroids = TRUE,show.ellipses=FALSE, show.group.labels=FALSE)
+
+rglwidget()
