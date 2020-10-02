@@ -73,22 +73,6 @@ summary(set.train.pca)
 pca.model <- lm(cbind(set.train[,1,drop=FALSE],newdat))
 summary(pca.model)
 
-#library(pca3d)
-library(gtools)
-set.train$Groups = quantcut(set.train$Poverty,3)
-
-g <- ggbiplot(set.train.pca, obs.scale = 1, var.scale = 1, 
-              labels=data[rownames(set.train),1],
-              groups = set.train$Groups,
-              ellipse = TRUE, 
-              circle = TRUE)
-g <- g + scale_color_discrete(name = '')
-g <- g + theme(legend.direction = 'horizontal', 
-               legend.position = 'top')
-print(g)
-
-set.train <- dplyr::select(set.train, -c("Groups"))
-
 model <- lm(f,set.train)
 summary(model)
 
@@ -131,9 +115,35 @@ data[order(data$Poverty),]
 finalModel <- lm(f,data2)
 summary(finalModel)
 
+#using prior derived PCA's, prior best.dim's
 finalModelPCA <- lm(cbind(data2[,1],data.frame(predict(set.train.pca, newdata=predict(trainParam, data)))[,1:best.dims]))
 summary(finalModelPCA)
 
 diagnostic_plots(finalModelPCA,data)
 
 hist(finalModel$residuals)
+
+#using newly derived PCA's, prior best.dim's (not sure if I should re-derive, but the point is to find the best hparm's on a subset)
+set.final <- predict(trainParam,data2)[,unlist(predictors)]
+set.final.pca <- prcomp(set.final[,-1])
+newdat<-set.final.pca$x[,1:best.dims]
+
+finalModelPCA <- lm(cbind(set.final[,1,drop=FALSE],newdat))
+
+#library(pca3d)
+library(gtools)
+
+set.final$Groups = quantcut(set.final[,1],3)
+
+g <- ggbiplot(set.final.pca, obs.scale = 1, var.scale = 1, 
+              labels=data[rownames(set.final),1],
+              groups = set.final$Groups,
+              ellipse = TRUE, 
+              circle = TRUE)
+g <- g + scale_color_discrete(name = '')
+g <- g + theme(legend.direction = 'horizontal', 
+               legend.position = 'top')
+print(g)
+
+set.final.pca <- dplyr::select(set.final, -c("Groups"))
+
