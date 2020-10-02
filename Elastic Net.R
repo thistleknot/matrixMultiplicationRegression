@@ -58,7 +58,7 @@ for(i in 0:numFolds)
         fit.name <- paste0("alpha", i/numFolds)
         
         predicted <- predict(list.of.fits[[fit.name]],
-                             s=list.of.fits[[fit.name]]$lambda.min, newx=objTest[,-1])
+                             s=list.of.fits[[fit.name]]$lambda.1se, newx=objTest[,-1])
         
         mse <- mean((objTest[,1] - predicted)^2)
         
@@ -71,11 +71,12 @@ bestAlpha <- results$alpha[which(results$mse == min(results$mse))]
 print(bestAlpha)
 
 bestLambda <- cv.glmnet(X, Y, type.measure="mse", alpha=i/numFolds,
-                        family="gaussian")$lambda.min
+                        family="gaussian")$lambda.1se
 print(bestLambda)
 
 bestModel <- glmnet(X, Y, alpha = bestAlpha, lambda=bestLambda, standardize = FALSE, family = "gaussian", type.measure="deviance")
 
+(coef(bestModel))
 predictions <- predict.glmnet(bestModel, as.matrix(set.test[,-1]))
 
 tested <- set.test[,1]
