@@ -126,10 +126,13 @@ set.final.pca <- prcomp(set.final[,-1])
 newdat<-set.final.pca$x[,1:best.dims]
 
 finalModelPCA <- lm(cbind(set.final[,1,drop=FALSE],newdat))
+summary(finalModelPCA)
 
 library(gtools)
 
 set.final$Groups = quantcut(set.final[,1],3)
+cname <- colnames(data2[,1,drop=FALSE])
+levels(set.final$Groups) <- c(paste("Low",cname),paste("Medium",cname),paste("High",cname))
 
 g <- ggbiplot(set.final.pca, obs.scale = 1, var.scale = 1, 
               labels=data[rownames(set.final),1],
@@ -149,7 +152,7 @@ bg3d("white")
 
 test <- c("AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY")
 
-pca3d(set.final.pca,group=set.final$Groups , show.labels = test ,show.centroids = TRUE,show.ellipses=FALSE, show.axe.titles = TRUE, show.group.labels=FALSE, biplot=TRUE)
+pca3d(set.final.pca,group=set.final$Groups , show.scale=TRUE, show.plane = FALSE, show.labels = test ,show.centroids = TRUE,show.ellipses=FALSE, show.axe.titles = TRUE, show.group.labels=TRUE, biplot=TRUE)
 
 rglwidget()
 
