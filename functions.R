@@ -354,7 +354,6 @@ diagnostic_plots <- function(model, data)
   
   leveragePlots(model)
 }
-                             
 
 back_step_vif <- function(data)
 {#data=set.train

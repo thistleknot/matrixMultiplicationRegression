@@ -8,7 +8,7 @@ library(car)
 library(MASS)
 library(data.table)
 
-source(functions.R)
+source("functions.R")
 
 normalizeResponse <- "Y"
 
@@ -128,13 +128,12 @@ if(TRUE)
 
 data[order(data$Poverty),]
 
-
 finalModel <- lm(f,data2)
 summary(finalModel)
 
-finalModelPCA <- lm(cbind(data2[,1],data.frame(predict(set.train.pca, newdata=predict(trainParam, data)))))
+finalModelPCA <- lm(cbind(data2[,1],data.frame(predict(set.train.pca, newdata=predict(trainParam, data)))[,1:best.dims]))
 summary(finalModelPCA)
 
-#plot(finalModelPCA)
+diagnostic_plots(finalModelPCA,data)
 
 hist(finalModel$residuals)
