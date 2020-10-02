@@ -13,7 +13,9 @@ source("functions.R")
 normalizeResponse <- "Y"
 
 data <- read.csv(file="states.csv",header = TRUE)
+rownames(data) <- data[,1]
 data2 <- data[,-1]
+rownames(data2) <- data[,1]
 
 nr <- nrow(data2)
 
@@ -146,6 +148,7 @@ library(rgl)
 bg3d("white")
 
 test <- c("AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY")
+
 pca3d(set.final.pca,group=set.final$Groups , show.labels = test ,show.centroids = TRUE,show.ellipses=FALSE, show.axe.titles = TRUE, show.group.labels=FALSE, biplot=TRUE)
 
 rglwidget()
