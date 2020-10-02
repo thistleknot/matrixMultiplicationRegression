@@ -30,7 +30,7 @@ set.test <- data2[testSetIndex,]
 #normalization (not being used)
 if(normalizeResponse=="Y")
 {
-  trainParam <- caret::preProcess(as.matrix(set.train))
+  trainParam <- caret::preProcess(as.matrix(set.train),method=c("BoxCox", "center", "scale"))
   
   set.train <- predict(trainParam, set.train)
   
@@ -104,13 +104,8 @@ abline(lm(tested~predictions2))
 cor(tested,predictions2)
 
 #new
-if(TRUE)
-{
-  diagnostic_plots(pca.model, data)
-  diagnostic_plots(model, data)
-}
-
-data[order(data$Poverty),]
+diagnostic_plots(pca.model, data)
+diagnostic_plots(model, data)
 
 finalModel <- lm(f,data2)
 summary(finalModel)
@@ -149,9 +144,10 @@ options(rgl.printRglwidget = TRUE)
 
 library(rgl)
 bg3d("white")
-labels(set.final.pca$x)
-test <- set.final.pca$x
-rownames(test) <- c("AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY")
-pca3d(test,group=set.final$Groups , show.labels = TRUE ,show.centroids = TRUE,show.ellipses=FALSE, show.group.labels=FALSE)
+
+test <- c("AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY")
+pca3d(set.final.pca,group=set.final$Groups , show.labels = test ,show.centroids = TRUE,show.ellipses=FALSE, show.axe.titles = TRUE, show.group.labels=FALSE, biplot=TRUE)
 
 rglwidget()
+
+data[order(data$Poverty),]
