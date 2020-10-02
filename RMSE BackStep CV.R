@@ -381,34 +381,66 @@ x <- set.train[,-1,drop=FALSE]
 
 f <- as.formula(paste(colnames(y), paste (colnames(x), collapse=" + "), sep=" ~ "))  # new formula
 
+pls.options(parallel = makeCluster(4, type = "FORK"))
+
+set.train.pcr <- pcr(f, ncol(set.train)-1, data = set.train, validation = "CV",segments = 10, segment.type = c("consecutive"))
+
+#pls.model <- plsr(f, data = set.train, validation= "CV",segments = 10, segment.type = c("consecutive"))
+
+# Find the number of dimensions with lowest cross validation error
+cv = RMSEP(set.train.pcr)
+best.dims = which.min(cv$val[estimate = "adjCV", , ]) - 1
+
+# PCA, best.dims
+pls.model = plsr(f, data = set.train, ncomp = best.dims)
+
+library(ggbiplot)
+set.train.pca <- prcomp(set.train[,-1])
+
+newdat<-set.train.pca$x[,1:best.dims]
+
+summary(set.train.pca)
+
+pca.model <- lm(cbind(set.train[1],newdat))
+summary(pca.model)
+
+#library(pca3d)
+library(gtools)
+set.train$Groups = quantcut(set.train$Poverty,3)
+
+g <- ggbiplot(set.train.pca, obs.scale = 1, var.scale = 1, 
+              labels=data[rownames(set.train),1],
+              groups = set.train$Groups,
+              ellipse = TRUE, 
+              circle = TRUE)
+g <- g + scale_color_discrete(name = '')
+g <- g + theme(legend.direction = 'horizontal', 
+               legend.position = 'top')
+print(g)
+set.train <- dplyr::select(set.train, -c("Groups"))
+
 model <- lm(f,set.train)
 summary(model)
 
-fitted <- model$fitted.values
-trained <- set.train[,1] 
 tested <- set.test[,1]
 
-if(normalizeResponse=="Y")
-{
-  fitted <- (fitted * trainParam$std[1]) + trainParam$mean[1]
-  trained <- (trained * trainParam$std[1]) + trainParam$mean[1]
-}
-
-plot(fitted,trained)
-abline(lm(fitted~trained))
-
-cor(trained,model$fitted.values)
-
 predictions <- predict(model,set.test)
+
+predictions2 <- predict(pls.model, set.test)
 
 if(normalizeResponse=="Y")
 {
   predictions <- (predictions * trainParam$std[1]) + trainParam$mean[1]
+  predictions2 <- (predictions2 * trainParam$std[1]) + trainParam$mean[1]
   tested <- (tested * trainParam$std[1]) + trainParam$mean[1]
 }
 
 RMSE(predictions,tested)
-MAPE(tested,predictions)
+MAPE(predictions,tested)
+
+RMSE(predictions2,tested)
+MAPE(predictions2,tested)
+
 
 plot(tested,predictions)
 abline(lm(tested~predictions))
