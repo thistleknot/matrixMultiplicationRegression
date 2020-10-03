@@ -265,7 +265,7 @@ back_step_partial_correlation <- function(innerdata)
 }
 
 diagnostic_plots <- function(model, data)
-{#model=pca.model
+{#model
   #dev.off()
   layout(matrix(c(1,2,3,4,5,6), 2, 3, byrow = TRUE))
   plot(model$fitted.values,model$residuals)
@@ -352,7 +352,18 @@ diagnostic_plots <- function(model, data)
   text(dffits(model), studres(model), labels, cex=1, pos=1, col="red")
   abline(v = c(cv,-cv), h=c(3,-3), lty = c(2,2,1,1))    
   
+  layout(matrix(c(1,2,3,4), 2, 2, byrow = TRUE))
+  hist(model$residuals)
+  hist(rstudent(model))
+  plot(model,5)
+  plot(model,6)
+  
+  layout(matrix(1:length(names), 2, 2, byrow = TRUE))
+  eff.pres <- allEffects(model)
+  plot(eff.pres)
+  
   leveragePlots(model)
+  
 }
 
 back_step_vif <- function(data)
@@ -419,4 +430,32 @@ back_step_vif <- function(data)
   
   return(dplyr::select(data,all_of(colnames(newData))))
   
+}
+
+#need to look into
+#https://rpubs.com/milesdwilliams15/328471
+peplot <- function(mod,var,ci=.95, plot_points = "n",
+                   xlab=var,ylab=names(mod[12]$model)[1],
+                   main="Partial Effect Plot",
+                   pe_lty=1,pe_lwd=3,pe_col="black",
+                   ci_lty=1,ci_lwd=1,ci_col="black",
+                   pch_col="black",pch_ty=19
+                   ){
+  modDat <- mod[12]$model
+  modDat1 <- modDat[,-1]
+  modDat2 <- modDat[,which(names(modDat)!=var)]
+  x <- resid(lm(modDat1[,var] ~., data=modDat1[,which(names(modDat1)!=var)]))
+  y <- resid(lm(modDat2[,1] ~ ., modDat2[,-1]))
+  part <- lm(y~x)
+  wx <- par("usr")[1:2]
+  new.x <- seq(wx[1],wx[2],len=100)
+  pred <- predict(part, new=data.frame(x=new.x), interval="conf",
+                  level = ci)
+  ylim=c(min(pred[,"lwr"]),max(pred[,"upr"]))
+  plot(x,y,type=plot_points,xlab=xlab,ylab=ylab,
+       ylim=ylim,col=pch_col,pch=pch_ty,
+       main=main)
+  lines(new.x,pred[,"fit"],lwd=pe_lwd,lty=pe_lty,col=pe_col)
+  lines(new.x,pred[,"lwr"],lwd=ci_lwd,lty=ci_lty,col=ci_col)
+  lines(new.x,pred[,"upr"],lwd=ci_lwd,lty=ci_lty,col=ci_col)
 }

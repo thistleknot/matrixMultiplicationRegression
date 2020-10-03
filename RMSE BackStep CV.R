@@ -66,7 +66,7 @@ best.dims = which.min(cv$val[estimate = "adjCV", , ]) - 1
 #pls.model = plsr(f, data = set.train, ncomp = best.dims)
 
 library(ggbiplot)
-set.train.pca <- prcomp(set.train[,-1])
+set.train.pca <- prcomp(set.train[,-1,drop=FALSE])
 
 newdat<-set.train.pca$x[,1:best.dims]
 
@@ -113,12 +113,19 @@ finalModel <- lm(f,data2)
 summary(finalModel)
 
 #using prior derived PCA's, prior best.dim's
-finalModelPCA <- lm(cbind(data2[,1],data.frame(predict(set.train.pca, newdata=predict(trainParam, data)))[,1:best.dims]))
+
+PCAData <- cbind(set.train[,1,drop=FALSE],data.frame(predict(set.train.pca, newdata=predict(trainParam, data)))[,1:best.dims])
+
+y2 <- PCAData[,1,drop=FALSE]
+x2 <- PCAData[,-1,drop=FALSE]
+  
+f2 <- as.formula(paste(colnames(y2), paste (colnames(x2), collapse=" + "), sep=" ~ "))  # new formula
+
+finalModelPCA <- lm(f2,PCAData)
+
 summary(finalModelPCA)
 
 diagnostic_plots(finalModelPCA,data)
-
-hist(finalModel$residuals)
 
 #using newly derived PCA's, prior best.dim's (not sure if I should re-derive, but the point is to find the best hparm's on a subset)
 set.final <- predict(trainParam,data2)[,unlist(predictors)]
@@ -142,7 +149,21 @@ g <- ggbiplot(set.final.pca, obs.scale = 1, var.scale = 1,
 g <- g + scale_color_discrete(name = '')
 g <- g + theme(legend.direction = 'horizontal', 
                legend.position = 'top')
-print(g)
+
+library("factoextra")
+
+p1 <- fviz_pca_biplot(set.final.pca, repel = TRUE,
+                gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+                #palette = c("#00AFBB",  "#FC4E07"),
+                col.ind = "contrib",
+                col.var = "contrib"
+                )
+
+library("ggpubr")
+library("gridExtra")
+
+ggpubr::ggarrange(p1,g)
+gridExtra::grid.arrange(p1,g, ncol=2)
 
 library(pca3d)
 options(rgl.printRglwidget = TRUE)
@@ -156,4 +177,17 @@ pca3d(set.final.pca,group=set.final$Groups , show.scale=TRUE, show.plane = FALSE
 
 rglwidget()
 
-data[order(data$Poverty),]
+dataSet <- cbind(data,cooks.distance(finalModelPCA), hatvalues(finalModelPCA), rstudent(finalModelPCA),finalModelPCA$residuals,dffits(finalModelPCA))
+
+colnames(dataSet) <- c("State", colnames(data)[-1],"cooks.distance","leverage","studentized","standardResidual","dffitts")
+
+library(DT)
+library(effects)
+library(pear)
+peplot(finalModelPCA,colnames(finalModelPCA$model)[1])
+
+df <- data.table(dataSet[order(dataSet$Poverty),])
+datatable(df, rownames = TRUE)
+
+
+
