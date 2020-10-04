@@ -41,7 +41,7 @@ knn.reg.bestK = function(data_knn, kmax=numFolds) {
 }
 
 back_step_partial_correlation_knn <- function(innerdata)
-{#innerdata=data2
+{#innerdata=set.train
   stop= 0
   
   n=nrow(innerdata)
@@ -61,7 +61,7 @@ back_step_partial_correlation_knn <- function(innerdata)
       
       folds=sample(rep(1:numFolds, length=nrow(as.data.frame(innerdata))))
       
-      pcors <- lapply(1:numFolds, function (k)
+      pcors <- mclapply(1:numFolds, function (k)
       {#k=1
         
         i_data <- innerdata[which(folds!=k),,drop=FALSE]
@@ -88,11 +88,14 @@ back_step_partial_correlation_knn <- function(innerdata)
         abs(cor(residm1,residm2))
       })
       
-      pcors <- mean(unlist(pcors))
+      #na.omit due to cor
+      #In cor(residm1, residm2) : the standard deviation is zero
+      pcors <- mean(na.omit(unlist(pcors)))
+      #print(pcors)
       return(pcors)
       
     })
-    print(internal_Scores)
+    #print(internal_Scores)
     
     #I'm removing min correlation between x and y controlling for rest of data
     #I want the relationship to be significant when comparing with y.

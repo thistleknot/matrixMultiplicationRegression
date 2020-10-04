@@ -49,38 +49,41 @@ if(normalizeResponse=="Y")
   set.test <- predict(trainParam, set.test)
 }
 
-set.train <- back_step_vif_lm(set.train)
+set.test2 <- set.test
+set.tain2 <- set.train
 
-set.train <- back_step_partial_correlation_lm(set.train)
+set.train2 <- back_step_vif_lm(set.train2)
 
-result <- rmse_backstep_lm(set.train)
+set.train2 <- back_step_partial_correlation_lm(set.train2)
+
+result <- rmse_backstep_lm(set.train2)
 
 predictors <- read.csv(text=paste (result[[2]][[1]], collapse=","),header = FALSE)
 
-set.train <- set.train[,c(unlist(predictors))]
+set.train2 <- set.train2[,c(unlist(predictors))]
 
-y <- set.train[,1,drop=FALSE]
-x <- set.train[,-1,drop=FALSE]
+y <- set.train2[,1,drop=FALSE]
+x <- set.train2[,-1,drop=FALSE]
 
 f <- as.formula(paste(colnames(y), paste (colnames(x), collapse=" + "), sep=" ~ "))  # new formula
 
 pls.options(parallel = makeCluster(4, type = "FORK"))
 
-set.train.pcr <- pcr(f, ncol(set.train)-1, data = set.train, validation = "CV",segments = 10, segment.type = c("consecutive"))
+set.train2.pcr <- pcr(f, ncol(set.train2)-1, data = set.train2, validation = "CV",segments = 10, segment.type = c("consecutive"))
 
 # Find the number of dimensions with lowest cross validation error
-cv = RMSEP(set.train.pcr)
+cv = RMSEP(set.train2.pcr)
 best.dims = which.min(cv$val[estimate = "adjCV", , ]) - 1
 
 # PCA, best.dims
-#pls.model = plsr(f, data = set.train, ncomp = best.dims)
+#pls.model = plsr(f, data = set.train2, ncomp = best.dims)
 
 library(ggbiplot)
-set.train.pca <- prcomp(set.train[,-1,drop=FALSE])
+set.train2.pca <- prcomp(set.train2[,-1,drop=FALSE])
 
-PCADat<-cbind(set.train[,1,drop=FALSE],set.train.pca$x[,1:best.dims])
+PCADat<-cbind(set.train2[,1,drop=FALSE],set.train2.pca$x[,1:best.dims])
 
-summary(set.train.pca)
+summary(set.train2.pca)
 
 yPCA <- PCADat[,1,drop=FALSE]
 xPCA <- PCADat[,-1,drop=FALSE]
@@ -90,14 +93,14 @@ fPCA <- as.formula(paste(colnames(yPCA), paste (colnames(xPCA), collapse=" + "),
 pca.model <- lm(fPCA,PCADat)
 summary(pca.model)
 
-model <- lm(f,set.train)
+model <- lm(f,set.train2)
 summary(model)
 
-tested <- set.test[,1]
+tested <- set.test2[,1]
 
-predictions <- predict(model,set.test)
+predictions <- predict(model,set.test2)
 
-predictions2 <- predict(pca.model, data.frame(predict(set.train.pca, set.test)))
+predictions2 <- predict(pca.model, data.frame(predict(set.train2.pca, set.test2)))
 
 if(normalizeResponse=="Y")
 {
@@ -131,7 +134,7 @@ diagnostic_plots_lm(finalModel,data)
 
 #using prior derived PCA's, prior best.dim's
 
-PCAData <- cbind(predict(trainParam, data2)[,1,drop=FALSE],data.frame(predict(set.train.pca, predict(trainParam, data2)))[,1:best.dims])
+PCAData <- cbind(predict(trainParam, data2)[,1,drop=FALSE],data.frame(predict(set.train2.pca, predict(trainParam, data2)))[,1:best.dims])
 
 y2 <- PCAData[,1,drop=FALSE]
 x2 <- PCAData[,-1,drop=FALSE]
