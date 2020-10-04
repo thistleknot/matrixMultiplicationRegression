@@ -2,8 +2,8 @@ library(plotly)
 library(reshape2)
 
 #load data
-test2 <- cbind(dataSet[,paste(d)],cl$cluster,test,set.final$Groups)
-  #cbind(dataSet[,paste(d)],set.final$Groups,test)
+#test2 <- cbind(dataSet[,paste(d)],cl$cluster,test,set.final$Groups)
+test2 <- cbind(dataSet[,paste(d)],set.final$Groups,test)
 #paste(d)
 #test2 <- cbind(dataSet[,c("Income","Population","Unemployed")],set.final$Groups,test)
 #d[1]

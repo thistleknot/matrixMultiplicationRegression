@@ -50,7 +50,7 @@ if(normalizeResponse=="Y")
 }
 
 set.test2 <- set.test
-set.tain2 <- set.train
+set.train2 <- set.train
 
 set.train2 <- back_step_vif_lm(set.train2)
 
