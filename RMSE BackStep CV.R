@@ -202,6 +202,8 @@ d <- fviz_contrib(final.pca, choice = "var", axes = 1:best.dims, top = best.dims
 
 d <- d$data$name[order(d$data$contrib,decreasing=TRUE)][1:3]
 
+d <- na.omit(d)
+
 cor.plot(PCOR(data[,c(unlist(predictors))]))
 
 #https://www.statmethods.net/graphs/scatterplot.html
