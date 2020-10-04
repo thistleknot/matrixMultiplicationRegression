@@ -7,6 +7,8 @@ library(FNN)
 knn.reg.bestK = function(data_knn, kmax=numFolds) {
   #data_knn <- set.train
   
+  #kmax = length(colnames(data_knn))
+  
   vec.rmse = rep(NA, kmax)
   
   vec.rmse <- lapply(1:kmax, function(i){
@@ -45,26 +47,19 @@ knn_model <- knn.reg.bestK(set.train)
 
 knn_model$k.opt
 
-yhat = knn.reg(set.train[,-1,drop=FALSE], set.test[,colnames(set.train)][,-1,drop=FALSE], unlist(set.train[,1,drop=FALSE]), knn_model$k.opt)
+yhat = knn.reg(set.train[,-1,drop=FALSE], test=NULL, unlist(set.train[,1,drop=FALSE]), knn_model$k.opt)
+yhat$R2Pred
+yhatFull = knn.reg(data2[,colnames(set.train)][,-1,drop=FALSE], test=NULL, unlist(data2[,colnames(set.train)][,1,drop=FALSE]), knn_model$k.opt)
 RMSE(yhat$pred,unlist(set.test[,1]))
+RMSE(yhatFull$pred,unlist(data2[,1]))
 
-#predictions
-knn.reg(dat[id.train, ], test = dat[id.test, ], dat$yFYield_CSUSHPINSA[id.train], k = knn_model$k.opt)
-#knn_model
+library(dbscan)
+kNNdistplot(set.train, k=knn_model$k.opt)
 
-#kNNdistplot(dat[id.train, ], k=knn_model$k.opt)
+eps <- median(kNNdist(set.train, k=knn_model$k.opt))
 
-#cl <- dbscan(dat[id.train, ], eps = .5, minPts = knn_model$k.opt)
-#pairs(dat[id.train, ], col = cl$cluster+1L)
-
-##0.01694881
-
-#test classification using knn
-yhat = knn.reg(dat[id.train, ], dat[id.test, ],dat$yFYield_CSUSHPINSA[id.train], knn_model$k.opt)
-yhat.test = rep(0, length(id.test))
-yhat.test[yhat$pred > 0] = 1
-mean(yhat.test != dat2$BL_yFYield_CSUSHPINSA[id.test])
-
+cl <- dbscan(set.train, eps = eps, minPts = knn_model$k.opt)
+pairs(set.train, col = cl$cluster+1L)
 
 rmse_backstep <- function(combined)
 {#combined=set.train
