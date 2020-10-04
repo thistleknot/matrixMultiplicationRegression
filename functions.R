@@ -102,7 +102,8 @@ rmse_backstep <- function(combined)
           
           #both
           #rmse <- MAPE(predV,unlist(actualV))
-          rmse <- RMSE(predV,unlist(actualV))
+          
+          rmse <- rmse(predV,unlist(actualV))
           
           return(rmse)
           #},mc.cores = 2)

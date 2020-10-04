@@ -8,6 +8,9 @@ library(car)
 library(MASS)
 library(data.table)
 library(effects)
+library(ModelMetrics)
+library(MLmetrics)
+library(parallel)
 
 source("functions.R")
 
@@ -54,7 +57,7 @@ y <- set.train[,1,drop=FALSE]
 x <- set.train[,-1,drop=FALSE]
 
 f <- as.formula(paste(colnames(y), paste (colnames(x), collapse=" + "), sep=" ~ "))  # new formula
-
+library(pls)
 pls.options(parallel = makeCluster(4, type = "FORK"))
 
 set.train.pcr <- pcr(f, ncol(set.train)-1, data = set.train, validation = "CV",segments = 10, segment.type = c("consecutive"))
@@ -97,7 +100,7 @@ if(normalizeResponse=="Y")
   tested <- (tested * trainParam$std[1]) + trainParam$mean[1]
 }
 
-RMSE(predictions,tested)
+rmse(predictions,tested)
 MAPE(predictions,tested)
 
 RMSE(predictions2,tested)
@@ -122,7 +125,7 @@ diagnostic_plots(finalModel,data)
 
 #using prior derived PCA's, prior best.dim's
 
-PCAData <- cbind(data2[,1,drop=FALSE],data.frame(predict(set.train.pca, newdata=predict(trainParam, data2)))[,1:best.dims])
+PCAData <- cbind(predict(trainParam, newdata=data2)[,1,drop=FALSE],data.frame(predict(set.train.pca, newdata=predict(trainParam, data2)))[,1:best.dims])
 
 y2 <- PCAData[,1,drop=FALSE]
 x2 <- PCAData[,-1,drop=FALSE]
@@ -217,9 +220,12 @@ pairs.panels(data[,c(unlist(predictors))],method = "pearson", # correlation meth
              bg=c("green","yellow","red")[set.final$Groups]
              )
 
-cor.plot(cor(cbind(scale(data[,"Poverty",drop=FALSE]),set.final.pca$x)))
 
-summary(lm(cbind(scale(data[,"Poverty",drop=FALSE])[,1,drop=FALSE],set.final.pca$x)))
+cor.plot(cor(cbind(scale(data2[,1,drop=FALSE]),set.final.pca$x)))
+
+#lm(cbind(scale(data2[,1,drop=FALSE])[,1,drop=FALSE],set.final.pca$x))
+
+#summary(lm(cbind(scale(data2[,1,drop=FALSE])[,1,drop=FALSE],set.final.pca$x)))
 
 scatterplotMatrix(data[,c(unlist(predictors))],ellipse = TRUE,lot.points = TRUE,regLine = TRUE,smooth=TRUE)
 scatterplotMatrix(data[,c(unlist(predictors))],groups=set.final$Groups,by.groups = TRUE,ellipse = TRUE,lot.points = TRUE,regLine = TRUE,smooth=TRUE)
