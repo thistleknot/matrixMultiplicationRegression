@@ -44,9 +44,6 @@ back_step_partial_correlation_knn <- function(innerdata)
 {#innerdata=set.train
   stop= 0
   
-  n=nrow(innerdata)
-  threshold_t <- qt(.05, n-2, lower.tail = TRUE, log.p = FALSE)
-  
   while(stop==0)
   {
     
@@ -55,20 +52,32 @@ back_step_partial_correlation_knn <- function(innerdata)
       break
     }
     
+    n=nrow(as.data.frame(innerdata))/numFolds
+    threshold_t <- qt(.05, n-2, lower.tail = TRUE, log.p = FALSE)
+    
     internal_Scores <- mclapply(2:length(colnames(innerdata)), function(p)
-    {#p=4
+    {#p=8
+      #set.seed(14)
       #print(p)
       
       folds=sample(rep(1:numFolds, length=nrow(as.data.frame(innerdata))))
       
       pcors <- mclapply(1:numFolds, function (k)
       {#k=1
+        #print(k)
         
         i_data <- innerdata[which(folds!=k),,drop=FALSE]
         
+        v_data <- innerdata[which(folds==k),,drop=FALSE]
+        
         y=i_data[,1,drop=FALSE]
+        yV=v_data[,1,drop=FALSE]
+        
         xsfiltered <- i_data[c(-1,-p)]
+        xsfilteredV <- v_data[c(-1,-p)]
+        
         control <- i_data[p]
+        controlV <- v_data[p]
         
         knn_model1 <- knn.reg.bestK(cbind(y,xsfiltered))
         knn_model2 <- knn.reg.bestK(cbind(control,xsfiltered))
@@ -76,21 +85,28 @@ back_step_partial_correlation_knn <- function(innerdata)
         #knn_model$k.opt
         
         #predict on test data
-        yhatm1 = knn.reg(xsfiltered, test=xsfiltered, unlist(y), knn_model1$k.opt)
-        yhatm2 = knn.reg(xsfiltered, test=xsfiltered, unlist(control), knn_model2$k.opt)
+        #https://www.ritchieng.com/machine-learning-k-nearest-neighbors-knn/
+          "KNN would search for one nearest observation and find that exact same observation"
+          "Because we testing on the exact same data, it would always make the same prediction"
+        
+        yhatm1 = knn.reg(train=xsfiltered, test=xsfilteredV, unlist(y), knn_model1$k.opt)
+        yhatm2 = knn.reg(xsfiltered, test=xsfilteredV, unlist(control), knn_model2$k.opt)
         #yhat$R2Pred
         
         #predict on self data with best knn
         
-        residm1 <- unlist(y)-yhatm1$pred
-        residm2 <- unlist(control)-yhatm2$pred
+        residm1 <- unlist(yV)-yhatm1$pred
+        residm2 <- unlist(controlV)-yhatm2$pred
         
-        abs(cor(residm1,residm2))
+        #tryCatch(stop(e), finally = print("Hello"))
+        value <- abs(cor(residm1,residm2))
+        #print(value)
+        return(value)
       })
       
       #na.omit due to cor
       #In cor(residm1, residm2) : the standard deviation is zero
-      pcors <- mean(na.omit(unlist(pcors)))
+      pcors <- mean(unlist(pcors))
       #print(pcors)
       return(pcors)
       
@@ -475,11 +491,11 @@ back_step_partial_correlation_lm <- function(innerdata)
 {#innerdata=set.train
   stop= 0
   
-  n=nrow(innerdata)
-  threshold_t <- qt(.05, n-2, lower.tail = TRUE, log.p = FALSE)
-  
   while(stop==0)
   {
+    
+    n = nrow(as.data.frame(innerdata))/numFolds*(numFolds-1)
+    threshold_t <- qt(.05, n-2, lower.tail = TRUE, log.p = FALSE)
     
     if(length(colnames(innerdata))<=3)
     {
