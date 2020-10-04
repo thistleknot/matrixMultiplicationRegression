@@ -223,9 +223,11 @@ pairs.panels(data[,c(unlist(predictors))],method = "pearson", # correlation meth
 
 cor.plot(cor(cbind(scale(data2[,1,drop=FALSE]),set.final.pca$x)))
 
-#lm(cbind(scale(data2[,1,drop=FALSE])[,1,drop=FALSE],set.final.pca$x))
 
-#summary(lm(cbind(scale(data2[,1,drop=FALSE])[,1,drop=FALSE],set.final.pca$x)))
+
+lm(cbind(set.final[,1,drop=FALSE],set.final.pca$x))
+
+summary(lm(cbind(set.final[,1,drop=FALSE],set.final.pca$x)))
 
 scatterplotMatrix(data[,c(unlist(predictors))],ellipse = TRUE,lot.points = TRUE,regLine = TRUE,smooth=TRUE)
 scatterplotMatrix(data[,c(unlist(predictors))],groups=set.final$Groups,by.groups = TRUE,ellipse = TRUE,lot.points = TRUE,regLine = TRUE,smooth=TRUE)
