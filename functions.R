@@ -1,3 +1,68 @@
+numFolds=10
+data2
+knn.reg.bestK(set.train)$k.opt
+
+library(FNN)
+
+knn.reg.bestK = function(data_knn, kmax=numFolds) {
+  #data_knn <- set.train
+  
+  vec.rmse = rep(NA, kmax)
+  
+  vec.rmse <- lapply(1:kmax, function(i){
+    #i=1
+    
+    v_folds=sample(rep(1:numFolds, length=nrow(as.data.frame(data_knn))))
+    
+    errors <- lapply(1:numFolds, function(k)
+    {#k=1
+      t <- data_knn[which(v_folds!=k),,drop=FALSE]
+      #print(t)
+      v <- data_knn[which(v_folds==k),,drop=FALSE]
+      
+      Xtrain <- t[,-1,drop=FALSE]
+      Xtest <- v[,-1,drop=FALSE]
+      ytrain <- t[,1,drop=FALSE]
+      ytest <- v[,1,drop=FALSE]
+      
+      #caret::knnreg(Xtrain, unlist(ytrain), 2)
+      yhat.test = knn.reg(train = Xtrain, test = Xtest, y = unlist(ytrain), k=i)$pred
+      rmse(unlist(yhat.test), unlist(ytest))
+      
+    })
+    
+      
+    return(mean(unlist(errors)))
+      
+  })
+  #plot(unlist(vec.rmse))
+  return(list(k.opt = which.min(unlist(vec.rmse)), rmse.min = min(unlist(vec.rmse)), unlist(vec.rmse)))
+  
+}
+
+#knn.reg.bestK(x_training, x_test, y_training, y_test)
+knn_model <- knn.reg.bestK(set.train)
+
+
+
+knn_model$k.opt
+#predictions
+knn.reg(dat[id.train, ], test = dat[id.test, ], dat$yFYield_CSUSHPINSA[id.train], k = knn_model$k.opt)
+#knn_model
+
+#kNNdistplot(dat[id.train, ], k=knn_model$k.opt)
+
+#cl <- dbscan(dat[id.train, ], eps = .5, minPts = knn_model$k.opt)
+#pairs(dat[id.train, ], col = cl$cluster+1L)
+
+##0.01694881
+
+#test classification using knn
+yhat = knn.reg(dat[id.train, ], dat[id.test, ],dat$yFYield_CSUSHPINSA[id.train], knn_model$k.opt)
+yhat.test = rep(0, length(id.test))
+yhat.test[yhat$pred > 0] = 1
+mean(yhat.test != dat2$BL_yFYield_CSUSHPINSA[id.test])
+
 
 rmse_backstep <- function(combined)
 {#combined=set.train
