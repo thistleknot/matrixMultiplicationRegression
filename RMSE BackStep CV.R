@@ -223,4 +223,4 @@ scatterplotMatrix(data[,c(unlist(predictors))],groups=set.final$Groups,by.groups
 #scatterplotMatrix(set_final_pca,ellipse = TRUE,lot.points = TRUE,regLine = TRUE,smooth=TRUE)
 #scatterplotMatrix(set_final_pca,groups=set.final$Groups,by.groups = TRUE,ellipse = TRUE,lot.points = TRUE,regLine = TRUE,smooth=TRUE)
 
-#source("3dPlot.R")
+source("3dPlot.R")
