@@ -7,6 +7,7 @@ set.seed(seed)
 library(car)
 library(MASS)
 library(data.table)
+library(effects)
 
 source("functions.R")
 
@@ -68,11 +69,16 @@ best.dims = which.min(cv$val[estimate = "adjCV", , ]) - 1
 library(ggbiplot)
 set.train.pca <- prcomp(set.train[,-1,drop=FALSE])
 
-newdat<-set.train.pca$x[,1:best.dims]
+PCADat<-cbind(set.train[,1,drop=FALSE],set.train.pca$x[,1:best.dims])
 
 summary(set.train.pca)
 
-pca.model <- lm(cbind(set.train[,1,drop=FALSE],newdat))
+yPCA <- PCADat[,1,drop=FALSE]
+xPCA <- PCADat[,-1,drop=FALSE]
+
+fPCA <- as.formula(paste(colnames(yPCA), paste (colnames(xPCA), collapse=" + "), sep=" ~ "))  # new formula
+
+pca.model <- lm(fPCA,PCADat)
 summary(pca.model)
 
 model <- lm(f,set.train)
@@ -112,9 +118,11 @@ diagnostic_plots(model, data)
 finalModel <- lm(f,data2)
 summary(finalModel)
 
+diagnostic_plots(finalModel,data)
+
 #using prior derived PCA's, prior best.dim's
 
-PCAData <- cbind(set.train[,1,drop=FALSE],data.frame(predict(set.train.pca, newdata=predict(trainParam, data)))[,1:best.dims])
+PCAData <- cbind(data2[,1,drop=FALSE],data.frame(predict(set.train.pca, newdata=predict(trainParam, data2)))[,1:best.dims])
 
 y2 <- PCAData[,1,drop=FALSE]
 x2 <- PCAData[,-1,drop=FALSE]
@@ -125,14 +133,12 @@ finalModelPCA <- lm(f2,PCAData)
 
 summary(finalModelPCA)
 
-diagnostic_plots(finalModelPCA,data)
-
 #using newly derived PCA's, prior best.dim's (not sure if I should re-derive, but the point is to find the best hparm's on a subset)
 set.final <- predict(trainParam,data2)[,unlist(predictors)]
 set.final.pca <- prcomp(set.final[,-1])
-newdat<-set.final.pca$x[,1:best.dims]
+newdat<-cbind(set.final[,1,drop=FALSE],set.final.pca$x[,1:best.dims])
 
-finalModelPCA <- lm(cbind(set.final[,1,drop=FALSE],newdat))
+finalModelPCA <- lm(f2,newdat)
 summary(finalModelPCA)
 
 library(gtools)
@@ -170,7 +176,6 @@ options(rgl.printRglwidget = TRUE)
 
 library(rgl)
 bg3d("white")
-
 test <- c("AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY")
 
 pca3d(set.final.pca,group=set.final$Groups , show.scale=TRUE, show.plane = FALSE, show.labels = test ,show.centroids = TRUE,show.ellipses=FALSE, show.axe.titles = TRUE, show.group.labels=TRUE, biplot=TRUE)
@@ -180,14 +185,43 @@ rglwidget()
 dataSet <- cbind(data,cooks.distance(finalModelPCA), hatvalues(finalModelPCA), rstudent(finalModelPCA),finalModelPCA$residuals,dffits(finalModelPCA))
 
 colnames(dataSet) <- c("State", colnames(data)[-1],"cooks.distance","leverage","studentized","standardResidual","dffitts")
+summary(dataSet)
+dataSet
 
 library(DT)
-library(effects)
-library(pear)
-peplot(finalModelPCA,colnames(finalModelPCA$model)[1])
+
+diagnostic_plots(finalModelPCA,data)
+fviz_contrib(set.final.pca, choice = "var", axes = 1:best.dims, top = best.dims)
 
 df <- data.table(dataSet[order(dataSet$Poverty),])
 datatable(df, rownames = TRUE)
 
+d <- fviz_contrib(set.final.pca, choice = "var", axes = 1:best.dims, top = best.dims)
 
+d <- d$data$name[order(d$data$contrib,decreasing=TRUE)][1:3]
 
+#cor.plot(data[,c(unlist(predictors))])
+cor.plot(PCOR(data[,c(unlist(predictors))]))
+
+#cor.plot(data2)
+#cor.plot(PCOR(data2))
+
+library(psych)
+#https://www.statmethods.net/graphs/scatterplot.html
+
+pairs.panels(data[,c(unlist(predictors))],method = "pearson", # correlation method
+             pch=21,
+             #hist.col = "#00AFBB",
+             density = TRUE,  # show density plots
+             ellipses = TRUE, # show correlation ellipses
+             bg=c("green","yellow","red")[set.final$Groups]
+             )
+
+cor.plot(cor(cbind(scale(data[,"Poverty",drop=FALSE]),set.final.pca$x)))
+
+summary(lm(cbind(scale(data[,"Poverty",drop=FALSE])[,1,drop=FALSE],set.final.pca$x)))
+
+scatterplotMatrix(data[,c(unlist(predictors))],ellipse = TRUE,lot.points = TRUE,regLine = TRUE,smooth=TRUE)
+scatterplotMatrix(data[,c(unlist(predictors))],groups=set.final$Groups,by.groups = TRUE,ellipse = TRUE,lot.points = TRUE,regLine = TRUE,smooth=TRUE)
+
+source("3dPlot.R")

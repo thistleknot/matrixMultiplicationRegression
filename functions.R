@@ -459,3 +459,33 @@ peplot <- function(mod,var,ci=.95, plot_points = "n",
   lines(new.x,pred[,"lwr"],lwd=ci_lwd,lty=ci_lty,col=ci_col)
   lines(new.x,pred[,"upr"],lwd=ci_lwd,lty=ci_lty,col=ci_col)
 }
+
+#https://towardsdatascience.com/keeping-an-eye-on-confounds-a-walk-through-for-calculating-a-partial-correlation-matrix-2ac6b831c5b6
+
+PCOR <- function(x, type = c("raw", "cor")) {
+  
+  type <- match.arg(type)
+  
+  if (type == "raw") {
+    x <- scale(x)
+    R <- (t(x) %*% x) / (nrow(x) - 1)
+  } else  {
+    R <- x
+  }
+  
+  ind <- unique(dim(R))
+  R_inv <- ginv(R)
+  ZM <- matrix(rep(0, len = (ind*ind)), nrow = ind)
+  diag(ZM) <- diag(R_inv)
+  D <- ginv(ZM)
+  AICOV <- D %*% R_inv %*% D
+  diag(ZM) <- diag(AICOV)
+  D  <- ginv(sqrt(ZM))
+  AICOR <- D %*% AICOV %*% D
+  pcor <- AICOR
+  pcor[upper.tri(pcor)] <- -pcor[upper.tri(pcor)]
+  pcor[lower.tri(pcor)] <- -pcor[lower.tri(pcor)]
+  dimnames(pcor) <- list(colnames(R), colnames(R))
+  return(pcor)
+  
+}  
