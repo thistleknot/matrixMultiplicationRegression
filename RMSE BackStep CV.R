@@ -91,7 +91,7 @@ tested <- set.test[,1]
 
 predictions <- predict(model,set.test)
 
-predictions2 <- predict(pca.model, data.frame(predict(set.train.pca, newdata=set.test)))
+predictions2 <- predict(pca.model, data.frame(predict(set.train.pca, set_final_pcaa=set.test)))
 
 if(normalizeResponse=="Y")
 {
@@ -125,7 +125,7 @@ diagnostic_plots(finalModel,data)
 
 #using prior derived PCA's, prior best.dim's
 
-PCAData <- cbind(predict(trainParam, newdata=data2)[,1,drop=FALSE],data.frame(predict(set.train.pca, newdata=predict(trainParam, data2)))[,1:best.dims])
+PCAData <- cbind(predict(trainParam, set_final_pcaa=data2)[,1,drop=FALSE],data.frame(predict(set.train.pca, set_final_pcaa=predict(trainParam, data2)))[,1:best.dims])
 
 y2 <- PCAData[,1,drop=FALSE]
 x2 <- PCAData[,-1,drop=FALSE]
@@ -138,10 +138,10 @@ summary(finalModelPCA)
 
 #using newly derived PCA's, prior best.dim's (not sure if I should re-derive, but the point is to find the best hparm's on a subset)
 set.final <- predict(trainParam,data2)[,unlist(predictors)]
-set.final.pca <- prcomp(set.final[,-1])
-newdat<-cbind(set.final[,1,drop=FALSE],set.final.pca$x[,1:best.dims])
+final.pca <- prcomp(set.final[,-1])
+set_final_pca <-cbind(set.final[,1,drop=FALSE],final.pca$x[,1:best.dims])
 
-finalModelPCA <- lm(f2,newdat)
+finalModelPCA <- lm(f2,set_final_pca)
 summary(finalModelPCA)
 
 library(gtools)
@@ -150,7 +150,7 @@ set.final$Groups = quantcut(set.final[,1],3)
 cname <- colnames(data2[,1,drop=FALSE])
 levels(set.final$Groups) <- c(paste("Low",cname),paste("Medium",cname),paste("High",cname))
 
-g <- ggbiplot(set.final.pca, obs.scale = 1, var.scale = 1, 
+g <- ggbiplot(final.pca, obs.scale = 1, var.scale = 1, 
               labels=data[rownames(set.final),1],
               groups = set.final$Groups,
               ellipse = TRUE, 
@@ -161,7 +161,7 @@ g <- g + theme(legend.direction = 'horizontal',
 
 library("factoextra")
 
-p1 <- fviz_pca_biplot(set.final.pca, repel = TRUE,
+p1 <- fviz_pca_biplot(final.pca, repel = TRUE,
                 gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
                 #palette = c("#00AFBB",  "#FC4E07"),
                 col.ind = "contrib",
@@ -181,11 +181,11 @@ library(rgl)
 bg3d("white")
 test <- c("AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY")
 
-pca3d(set.final.pca,group=set.final$Groups , show.scale=TRUE, show.plane = FALSE, show.labels = test ,show.centroids = TRUE,show.ellipses=FALSE, show.axe.titles = TRUE, show.group.labels=TRUE, biplot=TRUE)
+pca3d(final.pca,group=set.final$Groups , show.scale=TRUE, show.plane = FALSE, show.labels = test ,show.centroids = TRUE,show.ellipses=FALSE, show.axe.titles = TRUE, show.group.labels=TRUE, biplot=TRUE)
 
 rglwidget()
 
-dataSet <- cbind(data,cooks.distance(finalModelPCA), hatvalues(finalModelPCA), rstudent(finalModelPCA),finalModelPCA$residuals,dffits(finalModelPCA))
+dataSet <- cbind(data,cooks.distance(finalModel), hatvalues(finalModel), rstudent(finalModel),finalModel$residuals,dffits(finalModel))
 
 colnames(dataSet) <- c("State", colnames(data)[-1],"cooks.distance","leverage","studentized","standardResidual","dffitts")
 summary(dataSet)
@@ -194,12 +194,12 @@ dataSet
 library(DT)
 
 diagnostic_plots(finalModelPCA,data)
-fviz_contrib(set.final.pca, choice = "var", axes = 1:best.dims, top = best.dims)
+fviz_contrib(final.pca, choice = "var", axes = 1:best.dims, top = best.dims)
 
 df <- data.table(dataSet[order(dataSet$Poverty),])
 datatable(df, rownames = TRUE)
 
-d <- fviz_contrib(set.final.pca, choice = "var", axes = 1:best.dims, top = best.dims)
+d <- fviz_contrib(final.pca, choice = "var", axes = 1:best.dims, top = best.dims)
 
 d <- d$data$name[order(d$data$contrib,decreasing=TRUE)][1:3]
 
@@ -221,15 +221,12 @@ pairs.panels(data[,c(unlist(predictors))],method = "pearson", # correlation meth
              )
 
 
-cor.plot(cor(cbind(scale(data2[,1,drop=FALSE]),set.final.pca$x)))
-
-
-
-lm(cbind(set.final[,1,drop=FALSE],set.final.pca$x))
-
-summary(lm(cbind(set.final[,1,drop=FALSE],set.final.pca$x)))
+cor.plot(cor(set_final_pca))
 
 scatterplotMatrix(data[,c(unlist(predictors))],ellipse = TRUE,lot.points = TRUE,regLine = TRUE,smooth=TRUE)
 scatterplotMatrix(data[,c(unlist(predictors))],groups=set.final$Groups,by.groups = TRUE,ellipse = TRUE,lot.points = TRUE,regLine = TRUE,smooth=TRUE)
+
+#scatterplotMatrix(set_final_pca,ellipse = TRUE,lot.points = TRUE,regLine = TRUE,smooth=TRUE)
+#scatterplotMatrix(set_final_pca,groups=set.final$Groups,by.groups = TRUE,ellipse = TRUE,lot.points = TRUE,regLine = TRUE,smooth=TRUE)
 
 source("3dPlot.R")
