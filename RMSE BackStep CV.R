@@ -49,11 +49,11 @@ if(normalizeResponse=="Y")
   set.test <- predict(trainParam, set.test)
 }
 
-set.train <- back_step_vif(set.train)
+set.train <- back_step_vif_lm(set.train)
 
-set.train <- back_step_partial_correlation(set.train)
+set.train <- back_step_partial_correlation_lm(set.train)
 
-result <- rmse_backstep(set.train)
+result <- rmse_backstep_lm(set.train)
 
 predictors <- read.csv(text=paste (result[[2]][[1]], collapse=","),header = FALSE)
 
@@ -121,13 +121,13 @@ abline(lm(tested~predictions2))
 cor(tested,predictions2)
 
 #new
-diagnostic_plots(pca.model, data)
-diagnostic_plots(model, data)
+diagnostic_plots_lm(pca.model, data)
+diagnostic_plots_lm(model, data)
 
 finalModel <- lm(f,data2)
 summary(finalModel)
 
-diagnostic_plots(finalModel,data)
+diagnostic_plots_lm(finalModel,data)
 
 #using prior derived PCA's, prior best.dim's
 
@@ -190,7 +190,7 @@ colnames(dataSet) <- c("State", colnames(data)[-1],"cooks.distance","leverage","
 summary(dataSet)
 dataSet
 
-diagnostic_plots(finalModelPCA,data)
+diagnostic_plots_lm(finalModelPCA,data)
 fviz_contrib(final.pca, choice = "var", axes = 1:best.dims, top = best.dims)
 
 df <- data.table(dataSet[order(dataSet$Poverty),])

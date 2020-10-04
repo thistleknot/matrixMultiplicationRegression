@@ -1,6 +1,4 @@
 numFolds=10
-data2
-knn.reg.bestK(set.train)$k.opt
 
 library(FNN)
 
@@ -42,35 +40,99 @@ knn.reg.bestK = function(data_knn, kmax=numFolds) {
   
 }
 
+back_step_partial_correlation_knn <- function(innerdata)
+{#innerdata=data2
+  stop= 0
+  
+  n=nrow(innerdata)
+  threshold_t <- qt(.05, n-2, lower.tail = TRUE, log.p = FALSE)
+  
+  while(stop==0)
+  {
+    
+    if(length(colnames(innerdata))<=3)
+    {
+      break
+    }
+    
+    internal_Scores <- mclapply(2:length(colnames(innerdata)), function(p)
+    {#p=2
+      print(p)
+      
+      folds=sample(rep(1:numFolds, length=nrow(as.data.frame(innerdata))))
+      
+      pcors <- lapply(1:numFolds, function (k)
+      {#k=1
+        
+        i_data <- innerdata[which(folds!=k),,drop=FALSE]
+        
+        y=i_data[,1,drop=FALSE]
+        xsfiltered <- i_data[c(-1,-p)]
+        control <- i_data[p]
+        
+        knn_model1 <- knn.reg.bestK(cbind(y,xsfiltered))
+        knn_model2 <- knn.reg.bestK(cbind(control,xsfiltered))
+        
+        #knn_model$k.opt
+        
+        #predict on test data
+        yhatm1 = knn.reg(xsfiltered, test=xsfiltered, unlist(y), knn_model1$k.opt)
+        yhatm2 = knn.reg(xsfiltered, test=xsfiltered, unlist(control), knn_model2$k.opt)
+        #yhat$R2Pred
+        
+        #predict on self data with best knn
+        
+        residm1 <- unlist(y)-yhatm1$pred
+        residm2 <- unlist(control)-yhatm2$pred
+        
+        abs(cor(residm1,residm2))
+      })
+      
+      pcors <- mean(unlist(pcors))
+      return(pcors)
+      
+    })
+    
+    #I'm removing min correlation between x and y controlling for rest of data
+    #I want the relationship to be significant when comparing with y.
+    remove_scor <- min(unlist(mclapply(internal_Scores, `[[`, 1)))
+    
+    t = remove_scor * sqrt(n-2)/ sqrt(1-remove_scor^2)
+    
+    sig <- dt(t, n-2, log = FALSE)
+    
+    print(sig)
+    
+    removeColumn <- which(
+      (
+        unlist(mclapply(internal_Scores, `[[`, 1))
+        #add 1 because data has 1st element as y
+      )==remove_scor)+1
+    print(removeColumn)
+    
+    if(!is.na(sig))
+    {
+      if(sig<=.05)
+      {
+        stop=1
+        break
+      }
+    }
+    
+    innerdata <- innerdata[-removeColumn]
+    print(colnames(innerdata))
+    
+  }
+  
+  return(innerdata)
+}
 
-#knn.reg.bestK(x_training, x_test, y_training, y_test)
-knn_model <- knn.reg.bestK(set.train)
-
-#knn_model$k.opt
-
-#predict on test data
-yhat = knn.reg(set.train[,-1,drop=FALSE], test=set.test[,colnames(set.train)][,-1,drop=FALSE], unlist(set.train[,1,drop=FALSE]), knn_model$k.opt)
-#yhat$R2Pred
-
-#predict on self data with best knn
-yhatFull = knn.reg(set.final[,colnames(set.train)][,-1,drop=FALSE], test=set.final[,colnames(set.train)][,-1,drop=FALSE], unlist(set.final[,colnames(set.train)][,1,drop=FALSE]), knn_model$k.opt)
-RMSE(yhat$pred,unlist(set.test[,1]))
-RMSE(yhatFull$pred,unlist(set.final[,1]))
-
-#library(dbscan)
-kNNdistplot(set.train[,colnames(set.train)], k=knn_model$k.opt)
-
-eps <- median(kNNdist(set.train[,colnames(set.train)], k=knn_model$k.opt))
-
-cl <- dbscan(set.final[,colnames(set.train)], eps = eps, minPts = knn_model$k.opt)
-pairs(set.final[,colnames(set.train)], col = cl$cluster+1L)
 
 
 
 
 
-
-rmse_backstep <- function(combined)
+rmse_backstep_lm <- function(combined)
 {#combined=set.train
   
   v_folds=sample(rep(1:numFolds, length=nrow(as.data.frame(combined))))
@@ -247,7 +309,7 @@ rmse_backstep <- function(combined)
   return(list(minrmsescore,best_columnSet))
 }
 
-back_step_partial_correlation <- function(innerdata)
+back_step_partial_correlation_lm <- function(innerdata)
 {#innerdata=set.train
   stop= 0
   
@@ -316,7 +378,6 @@ back_step_partial_correlation <- function(innerdata)
         unlist(mclapply(internal_Scores, `[[`, 1))
         #add 1 because data has 1st element as y
       )==remove_scor)+1
-    print(removeColumn)
     
     if(!is.na(sig))
     {
@@ -336,7 +397,7 @@ back_step_partial_correlation <- function(innerdata)
   return(innerdata)
 }
 
-diagnostic_plots <- function(model, data)
+diagnostic_plots_lm <- function(model, data)
 {#model
   #dev.off()
   layout(matrix(c(1,2,3,4,5,6), 2, 3, byrow = TRUE))
@@ -438,7 +499,7 @@ diagnostic_plots <- function(model, data)
   
 }
 
-back_step_vif <- function(data)
+back_step_vif_lm <- function(data)
 {#data=set.train
   
   #remove aliased
