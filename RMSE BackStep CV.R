@@ -11,6 +11,14 @@ library(effects)
 library(ModelMetrics)
 library(MLmetrics)
 library(parallel)
+library(psych)
+library(pls)
+library("factoextra")
+library("ggpubr")
+library("gridExtra")
+library(pca3d)
+library(rgl)
+library(DT)
 
 source("functions.R")
 
@@ -57,7 +65,7 @@ y <- set.train[,1,drop=FALSE]
 x <- set.train[,-1,drop=FALSE]
 
 f <- as.formula(paste(colnames(y), paste (colnames(x), collapse=" + "), sep=" ~ "))  # new formula
-library(pls)
+
 pls.options(parallel = makeCluster(4, type = "FORK"))
 
 set.train.pcr <- pcr(f, ncol(set.train)-1, data = set.train, validation = "CV",segments = 10, segment.type = c("consecutive"))
@@ -91,7 +99,7 @@ tested <- set.test[,1]
 
 predictions <- predict(model,set.test)
 
-predictions2 <- predict(pca.model, data.frame(predict(set.train.pca, set_final_pcaa=set.test)))
+predictions2 <- predict(pca.model, data.frame(predict(set.train.pca, set.test)))
 
 if(normalizeResponse=="Y")
 {
@@ -125,7 +133,7 @@ diagnostic_plots(finalModel,data)
 
 #using prior derived PCA's, prior best.dim's
 
-PCAData <- cbind(predict(trainParam, set_final_pcaa=data2)[,1,drop=FALSE],data.frame(predict(set.train.pca, set_final_pcaa=predict(trainParam, data2)))[,1:best.dims])
+PCAData <- cbind(predict(trainParam, data2)[,1,drop=FALSE],data.frame(predict(set.train.pca, predict(trainParam, data2)))[,1:best.dims])
 
 y2 <- PCAData[,1,drop=FALSE]
 x2 <- PCAData[,-1,drop=FALSE]
@@ -159,8 +167,6 @@ g <- g + scale_color_discrete(name = '')
 g <- g + theme(legend.direction = 'horizontal', 
                legend.position = 'top')
 
-library("factoextra")
-
 p1 <- fviz_pca_biplot(final.pca, repel = TRUE,
                 gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
                 #palette = c("#00AFBB",  "#FC4E07"),
@@ -168,16 +174,11 @@ p1 <- fviz_pca_biplot(final.pca, repel = TRUE,
                 col.var = "contrib"
                 )
 
-library("ggpubr")
-library("gridExtra")
-
 ggpubr::ggarrange(p1,g)
 gridExtra::grid.arrange(p1,g, ncol=2)
 
-library(pca3d)
 options(rgl.printRglwidget = TRUE)
 
-library(rgl)
 bg3d("white")
 test <- c("AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY")
 
@@ -191,8 +192,6 @@ colnames(dataSet) <- c("State", colnames(data)[-1],"cooks.distance","leverage","
 summary(dataSet)
 dataSet
 
-library(DT)
-
 diagnostic_plots(finalModelPCA,data)
 fviz_contrib(final.pca, choice = "var", axes = 1:best.dims, top = best.dims)
 
@@ -203,13 +202,8 @@ d <- fviz_contrib(final.pca, choice = "var", axes = 1:best.dims, top = best.dims
 
 d <- d$data$name[order(d$data$contrib,decreasing=TRUE)][1:3]
 
-#cor.plot(data[,c(unlist(predictors))])
 cor.plot(PCOR(data[,c(unlist(predictors))]))
 
-#cor.plot(data2)
-#cor.plot(PCOR(data2))
-
-library(psych)
 #https://www.statmethods.net/graphs/scatterplot.html
 
 pairs.panels(data[,c(unlist(predictors))],method = "pearson", # correlation method
