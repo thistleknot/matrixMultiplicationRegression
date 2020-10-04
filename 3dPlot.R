@@ -11,16 +11,28 @@ test2 <- cbind(dataSet[,paste(d)],set.final$Groups,test)
 #Graph Resolution (more important for more complex shapes)
 graph_reso <- 10
 
-xname <- noquote(paste0("~",d[[1]]))
-
 f <- as.formula(paste(paste(d[1]), paste (c(paste(d[2]),paste(d[3])), collapse=" + "), sep=" ~ ")) 
 
 lm_model <- lm(f,data = test2)
 
 #Setup Axis
 axis_y <- seq(min(test2[,paste(d[1]),drop=FALSE]), max(test2[,paste(d[1]),drop=FALSE]), by = (max(test2[,paste(d[1]),drop=FALSE])-min(test2[,paste(d[1]),drop=FALSE]))/graph_reso)
-axis_x <- seq(min(test2[,paste(d[2]),drop=FALSE]), max(test2[,paste(d[2]),drop=FALSE]), by = (max(test2[,paste(d[2]),drop=FALSE])-min(test2[,paste(d[2]),drop=FALSE]))/graph_reso)
-axis_z <- seq(min(test2[,paste(d[3]),drop=FALSE]), max(test2[,paste(d[3]),drop=FALSE]), by = (max(test2[,paste(d[3]),drop=FALSE])-min(test2[,paste(d[3]),drop=FALSE]))/graph_reso)
+if (length(d) > 1)
+{
+  axis_x <- seq(min(test2[,paste(d[2]),drop=FALSE]), max(test2[,paste(d[2]),drop=FALSE]), by = (max(test2[,paste(d[2]),drop=FALSE])-min(test2[,paste(d[2]),drop=FALSE]))/graph_reso)
+} else
+(
+  axis_x <- NA
+)
+
+if (length(d)==3)
+{
+  axis_z <- seq(min(test2[,paste(d[3]),drop=FALSE]), max(test2[,paste(d[3]),drop=FALSE]), by = (max(test2[,paste(d[3]),drop=FALSE])-min(test2[,paste(d[3]),drop=FALSE]))/graph_reso)  
+} else
+(
+    axis_z <- NA
+)
+
 
 #can't figure out how to pass dynamic names to x,y,z
 
