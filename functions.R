@@ -31,7 +31,6 @@ knn.reg.bestK = function(data_knn, kmax=numFolds) {
       
     })
     
-      
     return(mean(unlist(errors)))
       
   })
@@ -40,12 +39,15 @@ knn.reg.bestK = function(data_knn, kmax=numFolds) {
   
 }
 
+
 #knn.reg.bestK(x_training, x_test, y_training, y_test)
 knn_model <- knn.reg.bestK(set.train)
 
-
-
 knn_model$k.opt
+
+yhat = knn.reg(set.train[,-1,drop=FALSE], set.test[,colnames(set.train)][,-1,drop=FALSE], unlist(set.train[,1,drop=FALSE]), knn_model$k.opt)
+RMSE(yhat$pred,unlist(set.test[,1]))
+
 #predictions
 knn.reg(dat[id.train, ], test = dat[id.test, ], dat$yFYield_CSUSHPINSA[id.train], k = knn_model$k.opt)
 #knn_model
