@@ -1,5 +1,3 @@
-numFolds=10
-
 seed <- sample(1:100,1)
 print(seed)
 set.seed(seed)

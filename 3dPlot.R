@@ -2,7 +2,8 @@ library(plotly)
 library(reshape2)
 
 #load data
-test2 <- cbind(dataSet[,paste(d)],set.final$Groups,test)
+test2 <- cbind(dataSet[,paste(d)],cl$cluster,test,set.final$Groups)
+  #cbind(dataSet[,paste(d)],set.final$Groups,test)
 #paste(d)
 #test2 <- cbind(dataSet[,c("Income","Population","Unemployed")],set.final$Groups,test)
 #d[1]
@@ -15,28 +16,11 @@ f <- as.formula(paste(paste(d[1]), paste (c(paste(d[2]),paste(d[3])), collapse="
 
 lm_model <- lm(f,data = test2)
 
-#Setup Axis
-axis_y <- seq(min(test2[,paste(d[1]),drop=FALSE]), max(test2[,paste(d[1]),drop=FALSE]), by = (max(test2[,paste(d[1]),drop=FALSE])-min(test2[,paste(d[1]),drop=FALSE]))/graph_reso)
-if (length(d) > 1)
-{
-  axis_x <- seq(min(test2[,paste(d[2]),drop=FALSE]), max(test2[,paste(d[2]),drop=FALSE]), by = (max(test2[,paste(d[2]),drop=FALSE])-min(test2[,paste(d[2]),drop=FALSE]))/graph_reso)
-} else
-(
-  axis_x <- NA
-)
-
-if (length(d)==3)
-{
-  axis_z <- seq(min(test2[,paste(d[3]),drop=FALSE]), max(test2[,paste(d[3]),drop=FALSE]), by = (max(test2[,paste(d[3]),drop=FALSE])-min(test2[,paste(d[3]),drop=FALSE]))/graph_reso)  
-} else
-(
-    axis_z <- NA
-)
-
 
 #can't figure out how to pass dynamic names to x,y,z
 
-hcolors=c("green","blue","red")[test2$set.final]
+hcolors=c("green","blue","red","black")[test2$`set.final$Groups`]
+#hcolors=c("green","blue","red","black")[test2$`set.final$Groups`]
 data_plot <- plot_ly(test2[,1:3],
                      y = ~test2[,1],
                      x = ~test2[,2],
@@ -59,6 +43,24 @@ data_plot
 
 if(FALSE)
 {
+  #Setup Axis
+  axis_y <- seq(min(test2[,paste(d[1]),drop=FALSE]), max(test2[,paste(d[1]),drop=FALSE]), by = (max(test2[,paste(d[1]),drop=FALSE])-min(test2[,paste(d[1]),drop=FALSE]))/graph_reso)
+  if (length(d) > 1)
+  {
+    axis_x <- seq(min(test2[,paste(d[2]),drop=FALSE]), max(test2[,paste(d[2]),drop=FALSE]), by = (max(test2[,paste(d[2]),drop=FALSE])-min(test2[,paste(d[2]),drop=FALSE]))/graph_reso)
+  } else
+    (
+      axis_x <- NA
+    )
+  
+  if (length(d)==3)
+  {
+    axis_z <- seq(min(test2[,paste(d[3]),drop=FALSE]), max(test2[,paste(d[3]),drop=FALSE]), by = (max(test2[,paste(d[3]),drop=FALSE])-min(test2[,paste(d[3]),drop=FALSE]))/graph_reso)  
+  } else
+    (
+      axis_z <- NA
+    )
+  
   lm_surface <- expand.grid(Income = axis_y,Population = axis_z, 
                             White = axis_x, 
                             KEEP.OUT.ATTRS = F

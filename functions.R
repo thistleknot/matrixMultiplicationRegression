@@ -28,6 +28,7 @@ knn.reg.bestK = function(data_knn, kmax=numFolds) {
       ytest <- v[,1,drop=FALSE]
       
       #caret::knnreg(Xtrain, unlist(ytrain), 2)
+      #important to have test here
       yhat.test = knn.reg(train = Xtrain, test = Xtest, y = unlist(ytrain), k=i)$pred
       rmse(unlist(yhat.test), unlist(ytest))
       
@@ -45,21 +46,29 @@ knn.reg.bestK = function(data_knn, kmax=numFolds) {
 #knn.reg.bestK(x_training, x_test, y_training, y_test)
 knn_model <- knn.reg.bestK(set.train)
 
-knn_model$k.opt
+#knn_model$k.opt
 
-yhat = knn.reg(set.train[,-1,drop=FALSE], test=NULL, unlist(set.train[,1,drop=FALSE]), knn_model$k.opt)
-yhat$R2Pred
-yhatFull = knn.reg(data2[,colnames(set.train)][,-1,drop=FALSE], test=NULL, unlist(data2[,colnames(set.train)][,1,drop=FALSE]), knn_model$k.opt)
+#predict on test data
+yhat = knn.reg(set.train[,-1,drop=FALSE], test=set.test[,colnames(set.train)][,-1,drop=FALSE], unlist(set.train[,1,drop=FALSE]), knn_model$k.opt)
+#yhat$R2Pred
+
+#predict on self data with best knn
+yhatFull = knn.reg(set.final[,colnames(set.train)][,-1,drop=FALSE], test=set.final[,colnames(set.train)][,-1,drop=FALSE], unlist(set.final[,colnames(set.train)][,1,drop=FALSE]), knn_model$k.opt)
 RMSE(yhat$pred,unlist(set.test[,1]))
-RMSE(yhatFull$pred,unlist(data2[,1]))
+RMSE(yhatFull$pred,unlist(set.final[,1]))
 
-library(dbscan)
-kNNdistplot(set.train, k=knn_model$k.opt)
+#library(dbscan)
+kNNdistplot(set.train[,colnames(set.train)], k=knn_model$k.opt)
 
-eps <- median(kNNdist(set.train, k=knn_model$k.opt))
+eps <- median(kNNdist(set.train[,colnames(set.train)], k=knn_model$k.opt))
 
-cl <- dbscan(set.train, eps = eps, minPts = knn_model$k.opt)
-pairs(set.train, col = cl$cluster+1L)
+cl <- dbscan(set.final[,colnames(set.train)], eps = eps, minPts = knn_model$k.opt)
+pairs(set.final[,colnames(set.train)], col = cl$cluster+1L)
+
+
+
+
+
 
 rmse_backstep <- function(combined)
 {#combined=set.train
