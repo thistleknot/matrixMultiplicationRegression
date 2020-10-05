@@ -13,7 +13,6 @@ if(normalizeResponse=="Y")
   set.test <- predict(trainParam, data2)
 }
 
-
 set.train2 <- set.train
 
 dataset_knn <- back_step_partial_correlation_knn(set.train2)

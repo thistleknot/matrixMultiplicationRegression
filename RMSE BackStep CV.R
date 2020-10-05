@@ -42,7 +42,8 @@ set.test <- data2[testSetIndex,]
 #normalization (not being used)
 if(normalizeResponse=="Y")
 {
-  trainParam <- caret::preProcess(as.matrix(set.train),method=c("BoxCox", "center", "scale"))
+  #trainParam <- caret::preProcess(as.matrix(set.train),method=c("BoxCox", "center", "scale"))
+  trainParam <- caret::preProcess(as.matrix(set.train),method=c("center", "scale"))
   
   set.train <- predict(trainParam, set.train)
   
