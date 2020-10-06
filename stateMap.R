@@ -34,12 +34,13 @@ f <- as.formula(paste(colnames(y), paste (colnames(x), collapse=" + "), sep=" ~ 
 
 pls.options(parallel = makeCluster(4, type = "FORK"))
 
-set.pcr <- pcr(f, ncol(set)-1, data = set, validation = "CV",segments = 10, segment.type = c("consecutive"))
+#set.pcr <- pcr(f, ncol(set)-1, data = set, validation = "CV",segments = 10, segment.type = c("consecutive"))
 
 # Find the number of dimensions with lowest cross validation error
-cv = RMSEP(set.pcr)
-best.dims = which.min(cv$val[estimate = "adjCV", , ]) - 1
-colnames(data2)
+#cv = RMSEP(set.pcr)
+#best.dims = which.min(cv$val[estimate = "adjCV", , ]) - 1
+#colnames(data2)
+best.dims = ncol(data2)
 # PCA, best.dims
 #pls.model = plsr(f, data = set.train2, ncomp = best.dims)
 
@@ -109,8 +110,12 @@ plot_usmap(data = mydata, values = "Cluster",  color = orange, labels=FALSE) +
 #test2 <- cbind(dataSet[,paste(d)],cl$cluster,test,set.final$Groups)
 test2 <- mydata
 
-fviz_contrib(set.pca, choice = "var", axes = 1:3, top = best.dims)
-fviz_contrib(set.pca, choice = "var", axes = 1:7, top = best.dims)
+best.dims
+
+colnames(data2)
+
+fviz_contrib(set.pca, choice = "var", axes = 1:3)
+fviz_contrib(set.pca, choice = "var", axes = 1:7)
 
 bg3d("white")
 test <- c("AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY")
