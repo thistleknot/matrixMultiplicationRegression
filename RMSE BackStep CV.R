@@ -17,6 +17,7 @@ library("gridExtra")
 library("pca3d")
 library("rgl")
 library("DT")
+library(ggbiplot)
 
 source("functions.R")
 
@@ -28,10 +29,6 @@ data2 <- data[,-1]
 rownames(data2) <- data[,1]
 
 nr <- nrow(data2)
-
-seed <- sample(1:100,1)
-print(seed)
-set.seed(seed)
 
 trainSetIndex <- (sample(1:(nr),(nr)*.8))
 testSetIndex <- c(1:nr)[(1:nr) %in% c(trainSetIndex)==FALSE]
@@ -79,7 +76,6 @@ best.dims = which.min(cv$val[estimate = "adjCV", , ]) - 1
 # PCA, best.dims
 #pls.model = plsr(f, data = set.train2, ncomp = best.dims)
 
-library(ggbiplot)
 set.train2.pca <- prcomp(set.train2[,-1,drop=FALSE])
 
 PCADat<-cbind(set.train2[,1,drop=FALSE],set.train2.pca$x[,1:best.dims])
