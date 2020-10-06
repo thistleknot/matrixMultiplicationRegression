@@ -2,6 +2,7 @@ library(ggbiplot)
 library(factoextra)
 library(plotly)
 library(reshape2)
+library(dbscan)
 
 seed <- sample(1:100,1)
 print(seed)
@@ -54,11 +55,29 @@ for (i in 2:15) wss[i] <- sum(kmeans(set.pca$x,
 plot(1:15, wss, type="b", xlab="Number of Clusters",
      ylab="Within groups sum of squares")
 
-fit <- kmeans(set.pca$x, 5) # 5 cluster solution
+fit <- kmeans(set.pca$x, tail(which(wss>=mean(wss)),1)) # 5 cluster solution
+
+#kNNdistplot(rbind(set.train,set.test)[,colnames(set.train2)], k=knn_model$k.opt)
+
+#knn_model <- knn.reg.bestK(set.pca$x)
+
+#eps <- median(kNNdist(rbind(set.train,set.test)[,colnames(set.train2)], k=knn_model$k.opt))
+
+#cl <- dbscan(set.pca$x, eps = tail(which(wss>=mean(wss)),1), tail(which(wss>=mean(wss)),1))
+#pairs(set.pca$x, col = cl$cluster+1L)
+
 # get cluster means 
 aggregate(cbind(set.pca$x),by=list(fit$cluster),FUN=mean)
 # append cluster assignment
-mydata <- data.frame(cbind(data$X,set.pca$x, fit$cluster))
+mydata <- do.call(cbind,lapply(1:ncol(set.pca$x),function(x)
+   {
+   as.numeric(set.pca$x[,x])
+ }))
+
+colnames(mydata) <- colnames(set.pca$x)
+#pairs(mydata[,1:9],col=fit$cluster)
+
+mydata <- data.frame(cbind(data$X,mydata, fit$cluster))
 
 colnames(mydata) <- c("state",colnames(set.pca$x),"Cluster")
 
@@ -89,6 +108,9 @@ plot_usmap(data = mydata, values = "Cluster",  color = orange, labels=FALSE) +
 #load data
 #test2 <- cbind(dataSet[,paste(d)],cl$cluster,test,set.final$Groups)
 test2 <- mydata
+
+fviz_contrib(set.pca, choice = "var", axes = 1:3, top = best.dims)
+fviz_contrib(set.pca, choice = "var", axes = 1:7, top = best.dims)
 
 bg3d("white")
 test <- c("AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY")
