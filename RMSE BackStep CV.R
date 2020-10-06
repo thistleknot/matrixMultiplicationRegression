@@ -227,4 +227,21 @@ scatterplotMatrix(data[,c(unlist(predictors))],groups=set.final$Groups,by.groups
 #scatterplotMatrix(set_final_pca,ellipse = TRUE,lot.points = TRUE,regLine = TRUE,smooth=TRUE)
 #scatterplotMatrix(set_final_pca,groups=set.final$Groups,by.groups = TRUE,ellipse = TRUE,lot.points = TRUE,regLine = TRUE,smooth=TRUE)
 
+set_final_pca
+
+cbind(set.final[,-4],as.numeric(set.final$Groups))
+
+wss <- (nrow(set.final)-1)*sum(apply(set.final[,-4],2,var))
+for (i in 2:15) wss[i] <- sum(kmeans(set.final[,-4], 
+                                     centers=i)$withinss)
+plot(1:15, wss, type="b", xlab="Number of Clusters",
+     ylab="Within groups sum of squares")
+
+fit <- kmeans(cbind(set.final[,-4],as.numeric(set.final$Groups)), 3) # 5 cluster solution
+# get cluster means 
+aggregate(cbind(set.final[,-4],as.numeric(set.final$Groups)),by=list(fit$cluster),FUN=mean)
+# append cluster assignment
+mydata <- data.frame(cbind(set.final[,-4],as.numeric(set.final$Groups)), fit$cluster)
+
+
 source("3dPlot.R")

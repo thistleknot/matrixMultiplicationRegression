@@ -4,6 +4,7 @@ library(reshape2)
 #load data
 #test2 <- cbind(dataSet[,paste(d)],cl$cluster,test,set.final$Groups)
 test2 <- cbind(dataSet[,paste(d)],set.final$Groups,test)
+test2 <- mydata
 #paste(d)
 #test2 <- cbind(dataSet[,c("Income","Population","Unemployed")],set.final$Groups,test)
 #d[1]
@@ -19,7 +20,9 @@ lm_model <- lm(f,data = test2)
 
 #can't figure out how to pass dynamic names to x,y,z
 
-hcolors=c("green","blue","red","black")[test2$`set.final$Groups`]
+hcolors=c("green","blue","red","black")[test2$as.numeric.set.final.Groups.]
+hsymbols=c('circle', 'circle-open', 'square', 'square-open','diamond', 'diamond-open', 'cross', 'x')[test2$fit.cluster]
+
 #hcolors=c("green","blue","red","black")[test2$`set.final$Groups`]
 data_plot <- plot_ly(test2[,1:3],
                      y = ~test2[,1],
@@ -28,7 +31,7 @@ data_plot <- plot_ly(test2[,1:3],
                      text = test2$test, # EDIT: ~ added
                      type = "scatter3d", 
                      mode = "text",
-                     marker = list(color = hcolors))
+                     marker = list(color = test2$Poverty, symbol=hsymbols))
 
 data_plot
 
