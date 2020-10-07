@@ -1,5 +1,7 @@
 library(magrittr); library(dplyr); library(ggplot2)
 
+#https://rviews.rstudio.com/2019/06/13/equal-size-kmeans/
+
 data(mtcars)
 k = 3
 kdat = mtcars %>% select(c(mpg, wt))

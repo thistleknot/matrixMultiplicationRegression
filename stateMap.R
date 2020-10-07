@@ -125,8 +125,11 @@ pca3d(set.pca, group = mydata$Cluster , show.scale=TRUE, show.plane = FALSE, sho
 
 rglwidget()
 
-aggregate(. ~ mydata$Cluster, data = data2[,-1], mean)
-aggregate(. ~ mydata$Cluster, data = data2[,-1], sd)
+aggregate(mydata$Cluster, data = mydata$Cluster, count)
+
+cbind(aggregate(. ~ mydata$Cluster, data = data2, mean),mydata %>% group_by(Cluster) %>% summarise(no_rows = length(Cluster)))
+
+cbind(aggregate(. ~ mydata$Cluster, data = data2, sd),mydata %>% group_by(Cluster) %>% summarise(no_rows = length(Cluster)))
 
 #paste(d)
 #test2 <- cbind(dataSet[,c("Income","Population","Unemployed")],set.final$Groups,test)
