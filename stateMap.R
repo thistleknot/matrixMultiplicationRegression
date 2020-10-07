@@ -3,6 +3,7 @@ library(factoextra)
 library(plotly)
 library(reshape2)
 library(dbscan)
+library(data.table)
 
 seed <- sample(1:100,1)
 print(seed)
@@ -115,7 +116,7 @@ best.dims
 colnames(data2)
 
 fviz_contrib(set.pca, choice = "var", axes = 1:3)
-fviz_contrib(set.pca, choice = "var", axes = 1:7)
+fviz_contrib(set.pca, choice = "var", axes = 1:ncol(set.pca$x))
 
 bg3d("white")
 test <- c("AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY")
@@ -123,6 +124,10 @@ test <- c("AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN",
 pca3d(set.pca, group = mydata$Cluster , show.scale=TRUE, show.plane = FALSE, show.labels = test ,show.centroids = TRUE,show.ellipses=TRUE, show.axe.titles = TRUE, show.group.labels=TRUE, biplot=TRUE)
 
 rglwidget()
+
+aggregate(. ~ mydata$Cluster, data = data2[,-1], mean)
+aggregate(. ~ mydata$Cluster, data = data2[,-1], sd)
+
 #paste(d)
 #test2 <- cbind(dataSet[,c("Income","Population","Unemployed")],set.final$Groups,test)
 #d[1]
