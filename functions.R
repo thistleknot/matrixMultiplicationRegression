@@ -2,6 +2,15 @@ numFolds=10
 
 library(FNN)
 
+covMatrix <- function(data)
+{#data=data2
+  d <- do.call(cbind,lapply(1:ncol(data), function(x)
+  {
+    data[,x]-mean(data[,x])
+  }))
+  return((t(d) %*% d)/(nrow(d)-1))
+}
+
 knn.reg.bestK = function(data_knn, kmax=numFolds) {
   #data_knn <- set.train
   
