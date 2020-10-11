@@ -45,7 +45,7 @@ best.dims = ncol(data2)
 # PCA, best.dims
 #pls.model = plsr(f, data = set.train2, ncomp = best.dims)
 
-set.pca <- prcomp(set[,-1,drop=FALSE])
+set.pca <- prcomp(set)
 
 #set.pca$sdev/sum(set.pca$sdev)
 
