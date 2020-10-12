@@ -109,7 +109,7 @@ sets <- lapply(1:numFolds, function(k)
   #nrow(set[which(v_folds!=k),,drop=FALSE])
   #print(k)
   #km <- kmeans(v, centers=size)
-  const_kmeans <- constrained.kmeans(p=matrix(1,nrow(v)),a=v,std=FALSE,k=size,b=matrix(5,size),imax=1000,seed=k,details=FALSE)
+  const_kmeans <- constrained.kmeans(p=matrix(1,nrow(v)),a=v,std=FALSE,k=size,b=matrix(3,size),imax=1000,seed=k,details=FALSE)
   
   inner_nums <- c(1:numFolds)[1:numFolds!=k]
   
@@ -157,9 +157,9 @@ clusterErrors <- unlist(lapply(sets, `[[`, 1))
 
 centersCluster <- sets[which(clusterErrors==min(clusterErrors))][[1]][[2]]
 
-fit <- fitted(set, centersCluster)
+fit <- constrained.kmeans(p=matrix(1,nrow(set)),a=set,std=FALSE,k=size,b=matrix(3,size),imax=1000,seed=k,details=FALSE)
 
-fit <- constrained.kmeans(p=matrix(1,nrow(set)),a=set,std=FALSE,k=5,b=matrix(3,5),imax=100,seed=3,details=FALSE)
+fit$tot.withinss
 
 #abs(1-fit$betweenss/fit$tot.withinss)
 
@@ -242,6 +242,7 @@ colnames(thanksgivingStates) <- c("state","hits","keyword","geo","gprop")
 
 plot_usmap(data = mydata, values = "Cluster",  color = orange, labels=FALSE) + 
   scale_colour_brewer(palette = "Greens")
+
 
 #best.dims
 
