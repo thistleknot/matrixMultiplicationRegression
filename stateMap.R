@@ -6,17 +6,13 @@ library(dbscan)
 library(data.table)
 library(whitening)
 library(reticulate)
-packages = c("gtrendsR","tidyverse","usmap")
+library(labdsv)
+library(optpart)
+library(scclust)
+library(reticulate)
+library(qwraps2)
 
-#use this function to check if each package is on the local machine
-#if a package is installed, it will be loaded
-#if any are not, the missing package(s) will be installed and loaded
-package.check <- lapply(packages, FUN = function(x) {
-  if (!require(x, character.only = TRUE)) {
-    install.packages(x, dependencies = TRUE)
-    library(x, character.only = TRUE)
-  }
-})
+source("functions.R")
 
 seed <- sample(1:100,1)
 print(seed)
@@ -90,22 +86,82 @@ if(whiten)
   fit <- kmeans(set, size) # 5 cluster solution
 } 
 
-scores <- mclapply(1:100, function(i)
+if(FALSE)
 {
-  set.seed(i)
+  #dis.bc <- dsvdis(set,'bray/curtis')
+  #dis <- dist(set)
+  #opt.5 <- optpart(5,dis)
+  #sil.5 <- optsil(opt.5,dis,100) # make take a few minutes
+  #summary(silhouette(sil.5,dis.bc))
+  ## Not run: 
+  #plot(silhouette(sil.5,dis.bc))
+}
+
+v_folds=sample(rep(1:numFolds, length=nrow(set)))
+
+#unique(sc_clustering(distances(set), 10))
+
+sets <- lapply(1:numFolds, function(k)
+{#k=1
+  set.seed(k)
   
-  km <- kmeans(set, centers=size)
-  print(i)
+  v <- set[which(v_folds!=k),,drop=FALSE]
+  #nrow(set[which(v_folds!=k),,drop=FALSE])
+  #print(k)
+  #km <- kmeans(v, centers=size)
+  const_kmeans <- constrained.kmeans(p=matrix(1,nrow(v)),a=v,std=FALSE,k=size,b=matrix(5,size),imax=1000,seed=k,details=FALSE)
   
-  ratio <- km$betweenss/km$tot.withinss
-  return(abs(ratio-1))
+  inner_nums <- c(1:numFolds)[1:numFolds!=k]
+  
+  errors <- lapply(inner_nums, function (i)
+    {#i=6
+    #print(i)
+    #inner_nums
+    
+      inner_set <- inner_nums[which(inner_nums!=i)]
+      #leave one MORE fold out
+      #v_folds %in% inner_set
+    
+      t <- set[v_folds %in% inner_set,,drop=FALSE]
+      
+      km2 <- kmeans(t, const_kmeans$centers)
+      return(list(km2$totss,km2$centers))
+    })
+  
+  return(list(mean(unlist(lapply(errors, `[[`, 1))),const_kmeans$centers))
+  
+  
+  #print(t)
+  #fitted(km, method = c("centers", "classes"))
 })
 
-set.seed(which(scores==min(unlist(scores))))
+if(FALSE)
+{
+  scores <- mclapply(1:100, function(i)
+  {
+    set.seed(i)
+    
+    km <- kmeans(set, centers=size)
+    print(i)
+    
+    ratio <- km$betweenss/km$tot.withinss
+    return(abs(ratio-1))
+  })
+  
+  set.seed(which(scores==min(unlist(scores))))
+  
+  fit <- kmeans(set, centers=size)
+}
 
-fit <- kmeans(set, centers=size)
+clusterErrors <- unlist(lapply(sets, `[[`, 1))
 
-abs(1-fit$betweenss/fit$tot.withinss)
+centersCluster <- sets[which(clusterErrors==min(clusterErrors))][[1]][[2]]
+
+fit <- fitted(set, centersCluster)
+
+fit <- constrained.kmeans(p=matrix(1,nrow(set)),a=set,std=FALSE,k=5,b=matrix(3,5),imax=100,seed=3,details=FALSE)
+
+#abs(1-fit$betweenss/fit$tot.withinss)
 
 if(FALSE)
 {
@@ -136,7 +192,8 @@ if(whiten)
 {
   aggregate(cbind(set),by=list(fit$cluster),FUN=mean)
 }
-# append cluster assignment
+
+#convert from matrix to df
 mydata <- do.call(cbind,lapply(1:ncol(set),function(x)
 {
   if(PCA)
@@ -159,8 +216,10 @@ if(whiten)
   {colnames(mydata) <- colnames(set)}
 }
 #pairs(mydata[,1:9],col=fit$cluster)
-
+# append cluster assignment
 mydata <- data.frame(cbind(data$State,mydata, fit$cluster))
+#kind of redundant
+#mydata <- data.frame(cbind(data$State,set, sil.5$clustering))
 
 if(PCA) colnames(mydata) <- c("state",colnames(set.pca$x),"Cluster")
 if(whiten) colnames(mydata) <- c("state",colnames(set),"Cluster")

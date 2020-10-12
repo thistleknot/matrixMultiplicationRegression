@@ -2,6 +2,70 @@ numFolds=10
 
 library(FNN)
 
+library(lpSolve)
+#https://github.com/raagnew/Constrained-K-Means-Clustering-in-R
+#Example call: const_kmeans <- constrained.kmeans(p=matrix(1,nrow(set)),a=set,std=FALSE,k=5,b=matrix(5,5),imax=100,seed=1,details=FALSE)
+constrained.kmeans <- function(p,a,std,k,b,imax,seed,details){
+  # Bob Agnew (raagnew1@gmail.com, www.raagnew.com)
+  # Constrained k-means clustering using lp.transport function
+  # in R package lpSolve
+  # Implements Bradley-Bennett-Demiriz algorithm
+  # p = population vector associated with observations
+  # Population for each observation must be assigned to same cluster
+  # For a normal clustering problem, p is a vector of ones
+  # a = numeric attribute matrix with a row for each observation
+  # std = TRUE if attributes are to be standardized across observations,
+  # else FALSE
+  # k = specified number of k-means clusters
+  # b = vector of integer lower bounds for population clusters
+  # If all populations are one, then these are exact lower bounds
+  # for cluster sizes
+  # If populations vary, then these are target lower bounds for
+  # cluster populations
+  # imax = maximum number of iterations in kmeans loop
+  # seed = random number seed for initial cluster assignments
+  # details = TRUE for printing of iteration details, else FALSE
+  m <- dim(a)[1] # Number of observations
+  n <- dim(a)[2] # Number of attributes
+  if (std) {a <- apply(a,2,function(u) (u-mean(u))/sd(u))}
+  set.seed(seed,kind=NULL,normal.kind=NULL) # Set random number seed
+  c <- sample.int(k,m,replace=TRUE,prob=NULL) # Initial cluster vector
+  require(lpSolve) # Load R linear programming package
+  num <- iter <- 1
+  while (iter <= imax & num > 0){
+    cost <- matrix(0,nrow=m,ncol=k)
+    for (j in 1:n){
+      cost <- cost + outer(a[,j],tapply(p*a[,j],c,sum)/tapply(p,c,sum),"-")^2}
+    # Solution of transportation linear program
+    trans <- lp.transport(cost,"min",rep("=",m),p,rep(">=",k),b)
+    # Generate new clusters
+    # For split allocation, assign to maximal cluster
+    c1 <- apply(trans$solution,1,which.max)
+    num <- sum(c1!=c)
+    if (details){
+      print(noquote("Iteration Number"))
+      print(iter)
+      print(trans)
+      print(noquote("Number of split allocations"))
+      print(sum(apply(trans$solution,1,max) < p))
+      print(noquote("Number of revised cluster elements"))
+      print(num)}
+    c <- c1 #Clusters revised
+    iter <- iter + 1
+  }
+  means <- NULL
+  for (j in 1:n){
+    means <- cbind(means,tapply(p*a[,j],c,sum)/tapply(p,c,sum))}
+  cost <- matrix(0,nrow=m,ncol=k)
+  for (j in 1:n){
+    cost <- cost + outer(a[,j],tapply(p*a[,j],c,sum)/tapply(p,c,sum),"-")^2}
+  cost <- matrix(p,nrow=m,ncol=k)*cost
+  ss <- sum(cost*outer(c,1:k,"=="))
+  result <- list(iter-1,num==0,c,tapply(p,c,sum),means,ss)
+  names(result) <- c("iter","converge","cluster","population","centers",
+                     "tot.withinss")
+  return(result)}
+
 covMatrix <- function(data)
 {#data=data2
   d <- do.call(cbind,lapply(1:ncol(data), function(x)
