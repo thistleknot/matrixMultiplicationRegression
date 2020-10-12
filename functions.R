@@ -3,6 +3,14 @@ numFolds=10
 library(FNN)
 
 library(lpSolve)
+
+#https://medium.com/codesmart/r-series-k-means-clustering-silhouette-794774b46586
+silhouette_score <- function(k, df){
+  km <- kmeans(df, centers = k, nstart=25)
+  ss <- silhouette(km$cluster, dist(df))
+  mean(ss[, 3])
+}
+
 #https://github.com/raagnew/Constrained-K-Means-Clustering-in-R
 #Example call: const_kmeans <- constrained.kmeans(p=matrix(1,nrow(set)),a=set,std=FALSE,k=5,b=matrix(5,5),imax=100,seed=1,details=FALSE)
 constrained.kmeans <- function(p,a,std,k,b,imax,seed,details){

@@ -17,8 +17,8 @@ source("functions.R")
 seed <- sample(1:100,1)
 print(seed)
 set.seed(seed)
-PCA=FALSE
-whiten=TRUE
+PCA=TRUE
+whiten=FALSE
 
 normalizeResponse <- "Y"
 
@@ -34,14 +34,16 @@ if(normalizeResponse=="Y")
 {
   #trainParam <- caret::preProcess(as.matrix(set.train),method=c("BoxCox", "center", "scale"))
   
-  trainParam <- caret::preProcess(as.matrix(data2),method=c("center", "scale"))
-  set <- predict(trainParam, data2)
+  #trainParam <- caret::preProcess(as.matrix(data2),method=c("center", "scale"))
+  #set <- predict(trainParam, data2)
   
   
   if(PCA)
   {
     #set <- whiten(as.matrix(set))
+    set <- data2
     set <- whiten(as.matrix(set),method=c("ZCA"),center=TRUE)
+    colnames(set) <- colnames(data2)
     set.pca <- prcomp(set, center=FALSE, scale=FALSE)
   }
   #decorrelate (i.e. whiten)
@@ -57,83 +59,94 @@ if(normalizeResponse=="Y")
 
 best.dims = ncol(data2)
 
-if(PCA)
+if(wss==FALSE)
 {
-  get_eigenvalue(set.pca)
+  if(PCA)
+  {
+    get_eigenvalue(set.pca)
+    
+    wss <- (nrow(set.pca$x)-1)*sum(apply(set.pca$x,2,var))
+    for (i in 2:15) wss[i] <- sum(kmeans(set.pca$x,
+                                         centers=i)$withinss)
+    plot(1:15, wss, type="b", xlab="Number of Clusters",
+         ylab="Within groups sum of squares")
+    
+    size <- which(wss==tail(wss[wss>mean(wss)],1))
+    #size <- 5
+    fit <- kmeans(set.pca$x, size) # 5 cluster solution
   
-  wss <- (nrow(set.pca$x)-1)*sum(apply(set.pca$x,2,var))
-  for (i in 2:15) wss[i] <- sum(kmeans(set.pca$x,
-                                       centers=i)$withinss)
-  plot(1:15, wss, type="b", xlab="Number of Clusters",
-       ylab="Within groups sum of squares")
+  }
   
-  size <- which(wss==tail(wss[wss>mean(wss)],1))
-  #size <- 5
-  fit <- kmeans(set.pca$x, size) # 5 cluster solution
-
+  if(whiten)
+  {
+    wss <- (nrow(set)-1)*sum(apply(set,2,var))
+    for (i in 2:15) wss[i] <- sum(kmeans(set,
+                                         centers=i)$withinss)
+    plot(1:15, wss, type="b", xlab="Number of Clusters",
+         ylab="Within groups sum of squares")
+    
+    size <- which(wss==tail(wss[wss>mean(wss)],1))
+    #size <- 5
+    fit <- kmeans(set, size) # 5 cluster solution
+  } 
 }
 
-if(whiten)
+if(silhouette==TRUE)
 {
-  wss <- (nrow(set)-1)*sum(apply(set,2,var))
-  for (i in 2:15) wss[i] <- sum(kmeans(set,
-                                       centers=i)$withinss)
-  plot(1:15, wss, type="b", xlab="Number of Clusters",
-       ylab="Within groups sum of squares")
+  k <- 2:20
   
-  size <- which(wss==tail(wss[wss>mean(wss)],1))
-  #size <- 5
-  fit <- kmeans(set, size) # 5 cluster solution
-} 
+  avg_sil <- sapply(k, function(x)
+  {
+    silhouette_score(x,set)
+  })
+  plot(k, type='b', avg_sil, xlab='Number of clusters', ylab='Average Silhouette Scores', frame=FALSE)
+  
+  size=which(avg_sil==max(avg_sil))
+  
+  const_kmeans <- constrained.kmeans(p=matrix(1,nrow(set.pca$x)),a=set.pca$x,std=FALSE,k=size,b=matrix(3,size),imax=1000,seed=1,details=FALSE)
+}
 
 if(FALSE)
 {
-  #dis.bc <- dsvdis(set,'bray/curtis')
-  #dis <- dist(set)
-  #opt.5 <- optpart(5,dis)
-  #sil.5 <- optsil(opt.5,dis,100) # make take a few minutes
-  #summary(silhouette(sil.5,dis.bc))
-  ## Not run: 
-  #plot(silhouette(sil.5,dis.bc))
-}
-
-v_folds=sample(rep(1:numFolds, length=nrow(set)))
-
-#unique(sc_clustering(distances(set), 10))
-
-sets <- lapply(1:numFolds, function(k)
-{#k=1
-  set.seed(k)
+  v_folds=sample(rep(1:numFolds, length=nrow(set)))
   
-  v <- set[which(v_folds!=k),,drop=FALSE]
-  #nrow(set[which(v_folds!=k),,drop=FALSE])
-  #print(k)
-  #km <- kmeans(v, centers=size)
-  const_kmeans <- constrained.kmeans(p=matrix(1,nrow(v)),a=v,std=FALSE,k=size,b=matrix(3,size),imax=1000,seed=k,details=FALSE)
+  #unique(sc_clustering(distances(set), 10))
   
-  inner_nums <- c(1:numFolds)[1:numFolds!=k]
-  
-  errors <- lapply(inner_nums, function (i)
-    {#i=6
-    #print(i)
-    #inner_nums
+  sets <- lapply(1:numFolds, function(k)
+  {#k=2
+    set.seed(k)
     
+    v <- set[which(v_folds!=k),,drop=FALSE]
+    #nrow(set[which(v_folds!=k),,drop=FALSE])
+    #print(k)
+    #km <- kmeans(v, centers=size)
+    const_kmeans <- constrained.kmeans(p=matrix(1,nrow(v)),a=v,std=FALSE,k=size,b=matrix(3,size),imax=1000,seed=k,details=FALSE)
+    
+    inner_nums <- c(1:numFolds)[1:numFolds!=k]
+    
+    errors <- lapply(inner_nums, function (i)
+    {#i=6
+      print(i)
+      #inner_nums
+      
       inner_set <- inner_nums[which(inner_nums!=i)]
       #leave one MORE fold out
       #v_folds %in% inner_set
-    
+      
       t <- set[v_folds %in% inner_set,,drop=FALSE]
       
       km2 <- kmeans(t, const_kmeans$centers)
       return(list(km2$totss,km2$centers))
     })
-  
-  return(list(mean(unlist(lapply(errors, `[[`, 1))),const_kmeans$centers))
-  
-  
-  #print(t)
-  #fitted(km, method = c("centers", "classes"))
-})
+    
+    return(list(mean(unlist(lapply(errors, `[[`, 1))),const_kmeans$centers))
+    
+    
+    #print(t)
+    #fitted(km, method = c("centers", "classes"))
+  })
+}
+
 
 if(FALSE)
 {
@@ -157,7 +170,15 @@ clusterErrors <- unlist(lapply(sets, `[[`, 1))
 
 centersCluster <- sets[which(clusterErrors==min(clusterErrors))][[1]][[2]]
 
-fit <- constrained.kmeans(p=matrix(1,nrow(set)),a=set,std=FALSE,k=size,b=matrix(3,size),imax=1000,seed=k,details=FALSE)
+#fit <- constrained.kmeans(p=matrix(1,nrow(set)),a=set,std=FALSE,k=size,b=matrix(3,size),imax=1000,seed=1,details=FALSE)
+fit <- kmeans(set,centersCluster)
+
+fit$betweenss/fit$totss
+
+
+#silhouette(fit$cluster, dist(set))
+
+#constrained.kmeans(p=matrix(1,nrow(set)),a=set,std=FALSE,k=size,b=matrix(3,size),imax=1000,seed=1,details=FALSE)
 
 fit$tot.withinss
 
@@ -224,8 +245,8 @@ mydata <- data.frame(cbind(data$State,mydata, fit$cluster))
 if(PCA) colnames(mydata) <- c("state",colnames(set.pca$x),"Cluster")
 if(whiten) colnames(mydata) <- c("state",colnames(set),"Cluster")
 
-#fviz_contrib(set.pca, choice = "var", axes = 1:3)
-#fviz_contrib(set.pca, choice = "var", axes = 1:ncol(set.pca$x))
+fviz_contrib(set.pca, choice = "var", axes = 1:3)
+fviz_contrib(set.pca, choice = "var", axes = 1:ncol(set.pca$x))
 
 cbind(aggregate(. ~ mydata$Cluster, data = data2, mean),mydata %>% group_by(Cluster) %>% summarise(no_rows = length(Cluster)))
 
@@ -240,9 +261,8 @@ thanksgivingStates$fips <-fips(thanksgivingStates$location)
 
 colnames(thanksgivingStates) <- c("state","hits","keyword","geo","gprop")
 
-plot_usmap(data = mydata, values = "Cluster",  color = orange, labels=FALSE) + 
+plot_usmap(data = mydata, values = "Cluster",  color = orange, labels=TRUE) + 
   scale_colour_brewer(palette = "Greens")
-
 
 #best.dims
 
@@ -251,14 +271,14 @@ plot_usmap(data = mydata, values = "Cluster",  color = orange, labels=FALSE) +
 bg3d("white")
 states <- c("AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY")
 
-pca3d(set.pca, group = mydata$Cluster , show.scale=TRUE, show.plane = FALSE, show.labels = states ,show.centroids = TRUE,show.ellipses=FALSE, show.axe.titles = TRUE, show.group.labels=TRUE, biplot=TRUE)
+pca3d(set.pca, group = mydata$Cluster , show.scale=TRUE, show.plane = FALSE, show.labels = states ,show.centroids = TRUE,show.ellipses=TRUE, show.axe.titles = TRUE, show.group.labels=TRUE, biplot=TRUE)
 
 rglwidget()
 
 #aggregate(data2,by=list(fit$cluster),FUN=mean)
 
-hcolors=c("green","blue","red","black","orange")[as.factor(mydata$Cluster)]
-hsymbols=c('circle', 'square', 'diamond','circle-open', 'square-open', 'diamond-open', 'cross', 'x')
+hcolors=c("green","blue","red","black","orange","purple","yellow","brown")[as.factor(mydata$Cluster)]
+#hsymbols=c('circle', 'square', 'diamond','circle-open', 'square-open', 'diamond-open', 'cross', 'x')
 
 #hcolors=c("green","blue","red","black")[test2$`set.final$Groups`]
 data_plot <- plot_ly(mydata[,2:4],
@@ -268,8 +288,8 @@ data_plot <- plot_ly(mydata[,2:4],
                      text = states, #mydata$state, # EDIT: ~ added
                      type = "scatter3d", 
                      mode = "text",
-                     marker = list(color = hcolors
-                                   #, symbol=hsymbols
+                     marker = list(color = hcolors#,
+                                   #symbol=hsymbols
                                    ))
 
 data_plot
