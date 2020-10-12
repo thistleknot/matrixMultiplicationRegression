@@ -18,12 +18,11 @@ package.check <- lapply(packages, FUN = function(x) {
   }
 })
 
-
 seed <- sample(1:100,1)
 print(seed)
 set.seed(seed)
-PCA=TRUE
-whiten=FALSE
+PCA=FALSE
+whiten=TRUE
 
 normalizeResponse <- "Y"
 
@@ -72,10 +71,12 @@ if(PCA)
   plot(1:15, wss, type="b", xlab="Number of Clusters",
        ylab="Within groups sum of squares")
   
+  size <- which(wss==tail(wss[wss>mean(wss)],1))
   #size <- 5
   fit <- kmeans(set.pca$x, size) # 5 cluster solution
 
 }
+
 if(whiten)
 {
   wss <- (nrow(set)-1)*sum(apply(set,2,var))
@@ -84,10 +85,38 @@ if(whiten)
   plot(1:15, wss, type="b", xlab="Number of Clusters",
        ylab="Within groups sum of squares")
   
-  #size <- which(wss==tail(wss[wss>mean(wss)],1))
+  size <- which(wss==tail(wss[wss>mean(wss)],1))
   #size <- 5
   fit <- kmeans(set, size) # 5 cluster solution
 } 
+
+scores <- mclapply(1:100, function(i)
+{
+  set.seed(i)
+  
+  km <- kmeans(set, centers=size)
+  print(i)
+  
+  ratio <- km$betweenss/km$tot.withinss
+  return(abs(ratio-1))
+})
+
+set.seed(which(scores==min(unlist(scores))))
+
+fit <- kmeans(set, centers=size)
+
+abs(1-fit$betweenss/fit$tot.withinss)
+
+if(FALSE)
+{
+  d <- dist(set, diag = T, method = "euclidean")
+  fit <- hclust(d, method="ward") 
+  plot(fit) # display dendogram
+  groups <- cutree(fit, k=size) # cut tree into 5 clusters
+  # draw dendogram with red borders around the 5 clusters 
+  rect.hclust(fit, k=size, border="red")
+  #View(fit)
+}
 
 #kNNdistplot(rbind(set.train,set.test)[,colnames(set.train2)], k=knn_model$k.opt)
 
@@ -167,7 +196,6 @@ pca3d(set.pca, group = mydata$Cluster , show.scale=TRUE, show.plane = FALSE, sho
 rglwidget()
 
 #aggregate(data2,by=list(fit$cluster),FUN=mean)
-
 
 hcolors=c("green","blue","red","black","orange")[as.factor(mydata$Cluster)]
 hsymbols=c('circle', 'square', 'diamond','circle-open', 'square-open', 'diamond-open', 'cross', 'x')
