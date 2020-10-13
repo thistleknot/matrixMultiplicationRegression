@@ -6,6 +6,10 @@ source("functions.R")
 data <- read.csv(file="states.csv",header = TRUE)
 rownames(data) <- data[,1]
 data2 <- data[,-1]
+
+#log transform crime and population due to mc producing negative results (and comparing log transform of original vars looks normal)
+data2 <- cbind(data2[,1:2],(data2[,3,drop=FALSE]^5),log(data2[,4,drop=FALSE]),data2[,5:9],log(data2[,10,drop=FALSE]))
+
 rownames(data2) <- data[,1]
 
 cov(data2)
@@ -46,27 +50,44 @@ scaled <- wd %*% t(inv(wm))
 #apply mean and original sdev
 unscale(scaled,sd)
 
+#made up data (monte carlo)
+
+wd2 <- matrix(rnorm(1000),100,10)
+scaled2 <- wd2 %*% t(inv(wm))
+data3 <- unscale(scaled2,sd)
+
+#some of the data for white % is messed up
+nd <- cbind(data3[,1:2],data3[,3,drop=FALSE]^(1/5),exp(data3[,4,drop=FALSE]),data3[,5:9],exp(data3[,10,drop=FALSE]))
+nd
+summary(nd)
+
+summary(data[,-1])
+hist(nd[,10,drop=FALSE])
+
+#population is obviously not normal
+hist(log(data2[,10]))
+hist(log(data2[,4]))
 
 df <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(data2[,-1]),method=c("ZCA"),center=TRUE))
 colnames(df) <- c(colnames(data2[,1,drop=FALSE]),colnames(data2[,-1]))
 model <- lm(data.frame(df))
 summary(model)
 
-
-df <- dplyr::select(data2[,-1], -c('Infant.Mort'))
+df <- dplyr::select(data2[,-1], -c('University'))
 df2 <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(df),method=c("ZCA"),center=TRUE))
 colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
 model <- lm(data.frame(df2))
 summary(model)
 
-df <- dplyr::select(data2[,-1], -c('Infant.Mort','University'))
+df <- dplyr::select(data2[,-1], -c('University','Crime'))
 df2 <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(df),method=c("ZCA"),center=TRUE))
 colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
 model <- lm(data.frame(df2))
 sm <- summary(model)
+sm
 round(sm$coefficients[,1],3)
 
-df <- dplyr::select(data2[,-1], -c('Infant.Mort','University','Doctors'))
+df <- dplyr::select(data2[,-1], -c('University','Crime','Doctors'))
 df2 <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(df),method=c("ZCA"),center=TRUE))
 colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
 model <- lm(data.frame(df2))
@@ -75,7 +96,7 @@ sm
 round(sm$coefficients[,1],3)
 
 #model goes down, but all significant terms
-df <- dplyr::select(data2[,-1], -c('Infant.Mort','University','Doctors','Traf.Deaths'))
+df <- dplyr::select(data2[,-1], -c('University','Crime','Doctors','Traf.Deaths'))
 df2 <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(df),method=c("ZCA"),center=TRUE))
 colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
 model <- lm(data.frame(df2))
@@ -83,39 +104,80 @@ sm <- summary(model)
 sm
 cvalues <- sort(abs(round(sm$coefficients[,1],3))[-1])
 
-#all significant with PCA.  Removing last PCA has a dramatic affect on Adj R^2
-df <- dplyr::select(data2[,-1], -c('Infant.Mort','University','Doctors','Traf.Deaths'))
-pca.set <- prcomp(as.matrix(df),scale=TRUE,center=TRUE)
-summary(pca.set)
-df2 <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),pca.set$x)
-#colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
+#model goes down, but all significant terms
+df <- dplyr::select(data2[,-1], -c('University','Crime','Doctors','Traf.Deaths','Infant.Mort'))
+df2 <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(df),method=c("ZCA"),center=TRUE))
+colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
 model <- lm(data.frame(df2))
 sm <- summary(model)
 sm
 cvalues <- sort(abs(round(sm$coefficients[,1],3))[-1])
 
+#model goes down, but all significant terms
+df <- dplyr::select(data2[,-1], -c('University','Crime','Doctors','Traf.Deaths','Infant.Mort','Population'))
+df2 <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(df),method=c("ZCA"),center=TRUE))
+colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
+model <- lm(data.frame(df2))
+sm <- summary(model)
+sm
+cvalues <- sort(abs(round(sm$coefficients[,1],3))[-1])
 
+pairs.panels(df2,method = "pearson", # correlation method
+             pch=21,            
+             density = TRUE,  # show density plots
+             ellipses = TRUE#, # show correlation ellipses
+             #bg=c("red","yellow","blue","purple")
+)	
+
+
+#population removed drops model significantly
+#remove lowest
+df <- dplyr::select(data2[,-1], -c('Infant.Mort','University','Crime','Doctors','Traf.Deaths','Population'))
+df2 <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(df),method=c("ZCA"),center=TRUE))
+colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
+model <- lm(data.frame(df2))
+sm <- summary(model)
+sm
+cvalues <- sort(abs(round(sm$coefficients[,1],3))[-1])
+
+#dropping one pca vs population has a negligable effect (.03)
+#all significant with PCA.  Removing last PCA has a dramatic affect on Adj R^2
+df <- dplyr::select(data2[,-1], -c('Infant.Mort','University','Crime','Doctors','Traf.Deaths'))
+pca.set <- prcomp(as.matrix(df),scale=TRUE,center=TRUE)
+summary(pca.set)
+dfPC <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),pca.set$x[,1:3])
+#colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
+model <- lm(data.frame(dfPC))
+sm <- summary(model)
+sm
+cvalues <- sort(abs(round(sm$coefficients[,1],3))[-1])
+
+#https://blogs.sas.com/content/iml/2010/12/10/converting-between-correlation-and-covariance-matrices.html
 
 plot(model)
 hist(model$residuals)
 
-
-df <- dplyr::select(data2[,-1], c('Income','White'))
-df2 <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(df),method=c("ZCA"),center=TRUE))
-colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
-model <- lm(data.frame(df2))
-sm <- summary(model)
-sm
-
-plot(model)
+#df <- dplyr::select(data2[,-1], c('Income','White'))
+#df2 <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(df),method=c("ZCA"),center=TRUE))
+#colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
+#model <- lm(data.frame(df2))
+#sm <- summary(model)
+#sm
+#plot(model)
 
 hcolors=rainbow(16, start=0, end=1)[quantcut(df2[,1],3)]
 states <- c("AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY")
 
-data_plot <- plot_ly(data=data.frame(df2[,c("Income","White","Crime")]),
+bg3d("white")
+
+pca3d(pca.set, group = hcolors , show.scale=TRUE, show.plane = FALSE, show.labels = states ,show.centroids = TRUE,show.ellipses=FALSE, show.axe.titles = TRUE, show.group.labels=TRUE, biplot=TRUE)
+
+rglwidget()
+
+data_plot <- plot_ly(data=data.frame(df2[,c("Income","White","Unemployed")]),
                      y = ~Income,
                      x = ~White,
-                     z = ~Crime,
+                     z = ~Unemployed,
                      text = states, #mydata$state, # EDIT: ~ added
                      type = "scatter3d", 
                      mode = "text",
@@ -125,14 +187,12 @@ data_plot <- plot_ly(data=data.frame(df2[,c("Income","White","Crime")]),
 
 data_plot
 
+sdf <- sd(df2)
+cdf <- cor(df2)
+
+cor2cov(cdf,sdf)
+
 library(corrplot)
 corrplot(cor(df2))
 
 plot(df2[,c("Poverty","Income")])
-
-pairs.panels(df2,method = "pearson", # correlation method
-             pch=21,            
-             density = TRUE,  # show density plots
-             ellipses = TRUE#, # show correlation ellipses
-             #bg=c("red","yellow","blue","purple")
-)	

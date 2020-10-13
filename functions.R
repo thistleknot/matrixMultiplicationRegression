@@ -4,6 +4,14 @@ library(FNN)
 
 library(lpSolve)
 
+cor2cov_1 <- function(R,S){
+  diag(S) %*% R %*% diag(S)
+}
+
+cor2cov <- function(R, S) {
+  sweep(sweep(R, 1, S, "*"), 2, S, "*")
+}
+
 #https://medium.com/codesmart/r-series-k-means-clustering-silhouette-794774b46586
 silhouette_score <- function(k, df){
   km <- kmeans(df, centers = k, nstart=25)
