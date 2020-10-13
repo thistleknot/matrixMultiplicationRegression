@@ -74,18 +74,6 @@ sm <- summary(model)
 sm
 round(sm$coefficients[,1],3)
 
-library(corrplot)
-corrplot(cor(df2))
-
-plot(df2[,c("Poverty","Income")])
-
-pairs.panels(df2,method = "pearson", # correlation method
-             pch=21,            
-             density = TRUE,  # show density plots
-             ellipses = TRUE#, # show correlation ellipses
-             #bg=c("red","yellow","blue","purple")
-)	
-
 #model goes down, but all significant terms
 df <- dplyr::select(data2[,-1], -c('Infant.Mort','University','Doctors','Traf.Deaths'))
 df2 <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(df),method=c("ZCA"),center=TRUE))
@@ -93,7 +81,20 @@ colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
 model <- lm(data.frame(df2))
 sm <- summary(model)
 sm
-round(sm$coefficients[,1],3)
+cvalues <- sort(abs(round(sm$coefficients[,1],3))[-1])
+
+#all significant with PCA.  Removing last PCA has a dramatic affect on Adj R^2
+df <- dplyr::select(data2[,-1], -c('Infant.Mort','University','Doctors','Traf.Deaths'))
+pca.set <- prcomp(as.matrix(df),scale=TRUE,center=TRUE)
+summary(pca.set)
+df2 <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),pca.set$x)
+#colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
+model <- lm(data.frame(df2))
+sm <- summary(model)
+sm
+cvalues <- sort(abs(round(sm$coefficients[,1],3))[-1])
+
+
 
 plot(model)
 hist(model$residuals)
@@ -111,10 +112,10 @@ plot(model)
 hcolors=rainbow(16, start=0, end=1)[quantcut(df2[,1],3)]
 states <- c("AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY")
 
-data_plot <- plot_ly(data=data.frame(df2[,1:3]),
-                     y = ~Poverty,
-                     x = ~Income,
-                     z = ~White,
+data_plot <- plot_ly(data=data.frame(df2[,c("Income","White","Crime")]),
+                     y = ~Income,
+                     x = ~White,
+                     z = ~Crime,
                      text = states, #mydata$state, # EDIT: ~ added
                      type = "scatter3d", 
                      mode = "text",
@@ -123,3 +124,15 @@ data_plot <- plot_ly(data=data.frame(df2[,1:3]),
                      ))
 
 data_plot
+
+library(corrplot)
+corrplot(cor(df2))
+
+plot(df2[,c("Poverty","Income")])
+
+pairs.panels(df2,method = "pearson", # correlation method
+             pch=21,            
+             density = TRUE,  # show density plots
+             ellipses = TRUE#, # show correlation ellipses
+             #bg=c("red","yellow","blue","purple")
+)	
