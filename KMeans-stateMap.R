@@ -190,9 +190,16 @@ aggSD <- cbind(aggregate(. ~ mydata$Cluster, data = data2, SD),mydata %>% group_
 aggMeans[order(aggMeans$Poverty),]
 aggSD[order(aggMeans$Poverty),]
 
+mydata
+
 plot_usmap(data = mydata, values = "Cluster",  color = hcolors[1], labels=TRUE)
 
 fviz_contrib(set.pca, choice = "var", axes = 1:3)
+
+#due ZCA whitening, all are nearly 100% important
+#no compression
+summary(set.pca)$importance[3,]
+
 fviz_contrib(set.pca, choice = "var", axes = 1:ncol(set))
 
 bg3d("white")

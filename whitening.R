@@ -47,3 +47,45 @@ scaled <- wd %*% t(inv(wm))
 unscale(scaled,sd)
 
 
+df <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(data2[,-1]),method=c("ZCA"),center=TRUE))
+colnames(df) <- c(colnames(data2[,1,drop=FALSE]),colnames(data2[,-1]))
+model <- lm(data.frame(df))
+summary(model)
+
+
+df <- dplyr::select(data2[,-1], -c('Infant.Mort'))
+df2 <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(df),method=c("ZCA"),center=TRUE))
+colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
+model <- lm(data.frame(df2))
+summary(model)
+
+df <- dplyr::select(data2[,-1], -c('Infant.Mort','University'))
+df2 <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(df),method=c("ZCA"),center=TRUE))
+colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
+model <- lm(data.frame(df2))
+sm <- summary(model)
+round(sm$coefficients[,1],3)
+
+#model goes down
+df <- dplyr::select(data2[,-1], -c('Infant.Mort','University','Doctors'))
+df2 <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(df),method=c("ZCA"),center=TRUE))
+colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
+model <- lm(data.frame(df2))
+sm <- summary(model)
+sm
+round(sm$coefficients[,1],3)
+
+#model goes down, but all significant terms
+df <- dplyr::select(data2[,-1], -c('Infant.Mort','University','Doctors','Traf.Deaths'))
+df2 <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(df),method=c("ZCA"),center=TRUE))
+colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
+model <- lm(data.frame(df2))
+sm <- summary(model)
+sm
+round(sm$coefficients[,1],3)
+
+plot(model)
+hist(model$residuals)
+
+
+
