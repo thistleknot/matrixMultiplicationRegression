@@ -1,5 +1,6 @@
 library(whitening)
 library(DMwR)
+library(bnstruct)
 
 source("functions.R")
 
@@ -8,7 +9,7 @@ rownames(data) <- data[,1]
 data2 <- data[,-1]
 
 #log transform crime and population due to mc producing negative results (and comparing log transform of original vars looks normal)
-data2 <- cbind(data2[,1:2],(data2[,3,drop=FALSE]^5),log(data2[,4,drop=FALSE]),data2[,5:9],log(data2[,10,drop=FALSE]))
+data2 <- cbind(data2[,1:2],(data2[,3,drop=FALSE]^5),(data2[,4,drop=FALSE]^(1/3)),data2[,5:9],log(data2[,10,drop=FALSE]))
 
 rownames(data2) <- data[,1]
 
@@ -57,16 +58,13 @@ scaled2 <- wd2 %*% t(inv(wm))
 data3 <- unscale(scaled2,sd)
 
 #some of the data for white % is messed up
-nd <- cbind(data3[,1:2],data3[,3,drop=FALSE]^(1/5),exp(data3[,4,drop=FALSE]),data3[,5:9],exp(data3[,10,drop=FALSE]))
-nd
+nd <- cbind(data3[,1:2],data3[,3,drop=FALSE]^(1/5),(data3[,4,drop=FALSE]^3),data3[,5:9],exp(data3[,10,drop=FALSE]))
+
+colnames(nd) <- colnames(data2)
+nd[is.nan(nd)] <- NA
+
+nd <- knn.impute(nd, k = 14, cat.var = 1:ncol(nd), to.impute = 1:nrow(nd),using = 1:nrow(nd))
 summary(nd)
-
-summary(data[,-1])
-hist(nd[,10,drop=FALSE])
-
-#population is obviously not normal
-hist(log(data2[,10]))
-hist(log(data2[,4]))
 
 df <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(data2[,-1]),method=c("ZCA"),center=TRUE))
 colnames(df) <- c(colnames(data2[,1,drop=FALSE]),colnames(data2[,-1]))
@@ -79,7 +77,7 @@ colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
 model <- lm(data.frame(df2))
 summary(model)
 
-df <- dplyr::select(data2[,-1], -c('University','Crime'))
+df <- dplyr::select(data2[,-1], -c('University','Population'))
 df2 <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(df),method=c("ZCA"),center=TRUE))
 colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
 model <- lm(data.frame(df2))
@@ -87,7 +85,7 @@ sm <- summary(model)
 sm
 round(sm$coefficients[,1],3)
 
-df <- dplyr::select(data2[,-1], -c('University','Crime','Doctors'))
+df <- dplyr::select(data2[,-1], -c('University','Population','Crime'))
 df2 <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(df),method=c("ZCA"),center=TRUE))
 colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
 model <- lm(data.frame(df2))
@@ -96,7 +94,7 @@ sm
 round(sm$coefficients[,1],3)
 
 #model goes down, but all significant terms
-df <- dplyr::select(data2[,-1], -c('University','Crime','Doctors','Traf.Deaths'))
+df <- dplyr::select(data2[,-1], -c('University','Population','Crime','Doctors'))
 df2 <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(df),method=c("ZCA"),center=TRUE))
 colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
 model <- lm(data.frame(df2))
@@ -105,7 +103,7 @@ sm
 cvalues <- sort(abs(round(sm$coefficients[,1],3))[-1])
 
 #model goes down, but all significant terms
-df <- dplyr::select(data2[,-1], -c('University','Crime','Doctors','Traf.Deaths','Infant.Mort'))
+df <- dplyr::select(data2[,-1], -c('University','Population','Crime','Doctors','Traf.Deaths'))
 df2 <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(df),method=c("ZCA"),center=TRUE))
 colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
 model <- lm(data.frame(df2))
@@ -114,7 +112,7 @@ sm
 cvalues <- sort(abs(round(sm$coefficients[,1],3))[-1])
 
 #model goes down, but all significant terms
-df <- dplyr::select(data2[,-1], -c('University','Crime','Doctors','Traf.Deaths','Infant.Mort','Population'))
+df <- dplyr::select(data2[,-1], -c('University','Population','Crime','Doctors','Traf.Deaths','Infant.Mort'))
 df2 <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(df),method=c("ZCA"),center=TRUE))
 colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
 model <- lm(data.frame(df2))
@@ -175,9 +173,9 @@ pca3d(pca.set, group = hcolors , show.scale=TRUE, show.plane = FALSE, show.label
 rglwidget()
 
 data_plot <- plot_ly(data=data.frame(df2[,c("Income","White","Unemployed")]),
-                     y = ~Income,
-                     x = ~White,
-                     z = ~Unemployed,
+                     y = ~White,
+                     x = ~Unemployed,
+                     z = ~Income,
                      text = states, #mydata$state, # EDIT: ~ added
                      type = "scatter3d", 
                      mode = "text",
