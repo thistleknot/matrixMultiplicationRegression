@@ -120,6 +120,16 @@ sm <- summary(model)
 sm
 cvalues <- sort(abs(round(sm$coefficients[,1],3))[-1])
 
+#So with crazy transformations.  I end up with White, Unemployed, Income and a .85 Adj R^2
+
+df <- dplyr::select(data[,-1], -c('State','University','Population','Crime','Doctors','Traf.Deaths','Infant.Mort'))
+df2 <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(df),method=c("ZCA"),center=TRUE))
+colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
+model <- lm(data.frame(df2))
+sm <- summary(model)
+sm
+cvalues <- sort(abs(round(sm$coefficients[,1],3))[-1])
+
 pairs.panels(df2,method = "pearson", # correlation method
              pch=21,            
              density = TRUE,  # show density plots
@@ -128,40 +138,22 @@ pairs.panels(df2,method = "pearson", # correlation method
 )	
 
 
-#population removed drops model significantly
-#remove lowest
-df <- dplyr::select(data2[,-1], -c('Infant.Mort','University','Crime','Doctors','Traf.Deaths','Population'))
-df2 <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(df),method=c("ZCA"),center=TRUE))
-colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
-model <- lm(data.frame(df2))
-sm <- summary(model)
-sm
-cvalues <- sort(abs(round(sm$coefficients[,1],3))[-1])
-
 #dropping one pca vs population has a negligable effect (.03)
 #all significant with PCA.  Removing last PCA has a dramatic affect on Adj R^2
-df <- dplyr::select(data2[,-1], -c('Infant.Mort','University','Crime','Doctors','Traf.Deaths'))
+df <- dplyr::select(data[,-1], -c('State','University','Population','Crime','Doctors','Traf.Deaths','Infant.Mort'))
 pca.set <- prcomp(as.matrix(df),scale=TRUE,center=TRUE)
 summary(pca.set)
 dfPC <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),pca.set$x[,1:3])
 #colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
-model <- lm(data.frame(dfPC))
-sm <- summary(model)
-sm
-cvalues <- sort(abs(round(sm$coefficients[,1],3))[-1])
+pcamodel <- lm(data.frame(dfPC))
+pcasm <- summary(pcamodel)
+pcasm
+#cvalues <- sort(abs(round(sm$coefficients[,1],3))[-1])
 
 #https://blogs.sas.com/content/iml/2010/12/10/converting-between-correlation-and-covariance-matrices.html
 
-plot(model)
-hist(model$residuals)
-
-#df <- dplyr::select(data2[,-1], c('Income','White'))
-#df2 <- cbind(scale(data2[,1],center=TRUE,scale=TRUE),whiten(as.matrix(df),method=c("ZCA"),center=TRUE))
-#colnames(df2) <- c(colnames(data2[,1,drop=FALSE]),colnames(df))
-#model <- lm(data.frame(df2))
-#sm <- summary(model)
-#sm
-#plot(model)
+plot(pcamodel)
+hist(pcamodel$residuals)
 
 hcolors=rainbow(16, start=0, end=1)[quantcut(df2[,1],3)]
 states <- c("AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY")
@@ -193,4 +185,3 @@ cor2cov(cdf,sdf)
 library(corrplot)
 corrplot(cor(df2))
 
-plot(df2[,c("Poverty","Income")])
