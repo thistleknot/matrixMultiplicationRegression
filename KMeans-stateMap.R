@@ -65,7 +65,8 @@ if(TRUE)
   size=which(avg_sil==max(avg_sil))+(min(k)-1)
 }
 
-size = size/2
+#size=size/2
+
 #find best center via highest bss/wss ratio using cluster size of silhouette
 if(TRUE)
 {
@@ -152,6 +153,8 @@ if(TRUE)
   plot(clusterScores)
   
 }
+
+max(clusterScores)
 
 if(FALSE)
 {
