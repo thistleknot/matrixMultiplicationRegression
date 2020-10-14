@@ -24,6 +24,8 @@ normalizeResponse <- "Y"
 data <- read.csv(file="states.csv",header = TRUE)
 rownames(data) <- data[,1]
 data2 <- data[,-1]
+#applying some normalization transformations
+data2 <- cbind(data2[,1:2],(data2[,3,drop=FALSE]^5),(data2[,4,drop=FALSE]^(1/3)),data2[,5:9],log(data2[,10,drop=FALSE]))
 rownames(data2) <- data[,1]
 
 nr <- nrow(data2)
@@ -38,7 +40,8 @@ if(normalizeResponse=="Y")
   
   #set <- whiten(as.matrix(set))
   set <- data2
-  set <- whiten(as.matrix(set),method=c("ZCA"),center=TRUE)
+  set <- scale(data2,center=TRUE,scale=TRUE)
+  set <- whiten(as.matrix(set),method=c("ZCA"))
   colnames(set) <- colnames(data2)
   set.pca <- prcomp(set, center=FALSE, scale=FALSE)
   set <- set.pca$x
@@ -153,6 +156,8 @@ if(TRUE)
   plot(clusterScores)
   
 }
+
+centersCluster
 
 max(clusterScores)
 
