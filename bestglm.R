@@ -45,9 +45,15 @@ boot <- boot.relimp(fit2, b = 1000, type = c("lmg",
 booteval.relimp(boot) # print result
 plot(booteval.relimp(boot,sort=TRUE)) # plot result
 
+plot(fit1,2)
+plot(fit2,2)
 plot(fit2$residuals-fit$residuals)
 
+sortedNames <- names(sort(abs(fit2$coefficients)[-1],decreasing=TRUE))
+
 barplot(sort((round(abs(fit2$coefficients)[-1],2)/sum(round(abs(fit2$coefficients)[-1],2))),decreasing=TRUE)) 
+
+whiteData <- cbind(whiteData[,1,drop=FALSE],whiteData[sortedNames])
 
 hist(fit2$residuals)
 
