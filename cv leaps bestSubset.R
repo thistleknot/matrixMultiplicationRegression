@@ -2,6 +2,7 @@ library(caret)
 library(leaps)
 library(tidyverse)
 library(car)
+library(whiten)
 
 normalizeResponse <- "Y"
 
@@ -103,7 +104,9 @@ plot(tested,predictions)
 abline(lm(tested~predictions))
 cor(tested,predictions)
 
-finalModel <- lm(f,data2)
+wd <- cbind(scale(data2[,1,drop=FALSE]),whiten(as.matrix(data2[,-1][finalNames]), method=c("ZCA")))
+
+finalModel <- lm(wd)
 summary(finalModel)
 
 hist(finalModel$residuals)
