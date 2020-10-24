@@ -14,7 +14,7 @@ data2 <- data[,-1]
 
 data3 <- data.frame(scale(data2))
 
-chosen <- bestglm(cbind(data3[,-1],data3[,1,drop=FALSE]), CVArgs = list(method="CVHTM", K=10, REP = 10))
+chosen <- bestglm(cbind(data3[,-1],data3[,1,drop=FALSE]), IC = "CV", t=10, CVArgs = list(Method = "HTF", K = 10, REP = 1))
 
 selectedPredictors <- names(chosen$BestModel$coefficients)[-1]
 
@@ -45,7 +45,7 @@ boot <- boot.relimp(fit2, b = 1000, type = c("lmg",
 booteval.relimp(boot) # print result
 plot(booteval.relimp(boot,sort=TRUE)) # plot result
 
-plot(fit1,2)
+plot(fit,2)
 plot(fit2,2)
 plot(fit2$residuals-fit$residuals)
 
