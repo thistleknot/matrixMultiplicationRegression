@@ -1,6 +1,7 @@
 library(whitening)
 library(DMwR)
 library(bnstruct)
+library(bestglm)
 
 source("functions.R")
 
@@ -8,8 +9,20 @@ data <- read.csv(file="states.csv",header = TRUE)
 rownames(data) <- data[,1]
 data2 <- data[,-1]
 
+library(tidyr)
+library(ggplot2)
+# or `library(tidyverse)`
+
+data2 %>% gather() %>% head()
+
+ggplot(gather(data2), aes(value)) + 
+  geom_histogram(bins = 10) + 
+  facet_wrap(~key, scales = 'free_x')
+
 #log transform crime and population due to mc producing negative results (and comparing log transform of original vars looks normal)
 data2 <- cbind(data2[,1:2],(data2[,3,drop=FALSE]^5),(data2[,4,drop=FALSE]^(1/3)),data2[,5:9],log(data2[,10,drop=FALSE]))
+
+hist(data2)
 
 rownames(data2) <- data[,1]
 
