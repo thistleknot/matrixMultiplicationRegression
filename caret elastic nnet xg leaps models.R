@@ -10,9 +10,10 @@ data <- read.csv(file="states.csv",header = TRUE)
 #data2 <- data[,-1]
 
 seed <- sample(1:100,1)
+#seed=40
 
-nr <- nrow(data3)
-nc <- ncol(data3)
+nr <- nrow(data)
+nc <- ncol(data)
 
 trainSetIndex <- (sample(1:(nr),(nr)*.8))
 testSetIndex <- c(1:nr)[(1:nr) %in% c(trainSetIndex)==FALSE]
