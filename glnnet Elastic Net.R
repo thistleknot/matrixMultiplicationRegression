@@ -75,13 +75,16 @@ enet$finalModel$tuneValue
 
 plot(enet)
 
-
 #coef(xg$finalModel,s=xg$finalModel$tuneValue$lambda)
 #coef(enet$finalModel,enet$bestTune[,1])
 
 #really bad values
 model_glm <- glmnet(data.matrix(set.train[,-1,drop=FALSE]), as.matrix(set.train[,1,drop=FALSE]), alpha = enet$finalModel$tuneValue$fraction, lambda=enet$finalModel$lambda, standardize = FALSE, family = "gaussian", type.measure="deviance")
 #predicts <- predict.glmnet(model,data.matrix(set.test[,-1,drop=FALSE]),alpha = enet$finalModel$tuneValue$fraction, lambda=enet$finalModel$lambda)
+
+model_nnet <- train(f, data = set.train,method = "nnet", trControl = train.control)
+
+plot(model_nnet)
 
 best_caret <- train(f, data = set.train,method = "leapBackward", trControl = train.control)
 
@@ -104,6 +107,7 @@ plot(coef(model_xg)[,ncol(coef(model_xg))])
 
 predict_xg <- predict.glmnet(model_xg,data.matrix(set.test[,-1,drop=FALSE]), alpha = xg$finalModel$tuneValue$alpha, lambda=xg$finalModel$lambda)
 predict_xg <- predict_xg[,ncol(predict_xg)]
+predict_nnet <- predict(model_nnet, set.test[,-1])
 
 predict_enet <- predict(model_enet,as.matrix(set.test[,-1]))
 
@@ -114,6 +118,7 @@ rmse((set.test[,1]* trainParam$std[1]) + trainParam$mean[1],(predict_enet* train
 rmse((set.test[,1]* trainParam$std[1]) + trainParam$mean[1],(predict_glm* trainParam$std[1]) + trainParam$mean[1])
 rmse((set.test[,1]* trainParam$std[1]) + trainParam$mean[1],(predict_xg* trainParam$std[1]) + trainParam$mean[1])
 rmse((set.test[,1]* trainParam$std[1]) + trainParam$mean[1],(predict_best_caret* trainParam$std[1]) + trainParam$mean[1])
+rmse((set.test[,1]* trainParam$std[1]) + trainParam$mean[1],(predict_nnet* trainParam$std[1]) + trainParam$mean[1])
 
 #exact same
 plot((set.test[,1]* trainParam$std[1]) + trainParam$mean[1],(predict_enet* trainParam$std[1]) + trainParam$mean[1])
@@ -121,7 +126,7 @@ plot((set.test[,1]* trainParam$std[1]) + trainParam$mean[1],(predict_enet* train
 plot((set.test[,1]* trainParam$std[1]) + trainParam$mean[1],(predict_glm* trainParam$std[1]) + trainParam$mean[1])
 plot((set.test[,1]* trainParam$std[1]) + trainParam$mean[1],(predict_xg* trainParam$std[1]) + trainParam$mean[1])
 plot((set.test[,1]* trainParam$std[1]) + trainParam$mean[1],(predict_best_caret* trainParam$std[1]) + trainParam$mean[1])
-
+plot((set.test[,1]* trainParam$std[1]) + trainParam$mean[1],(predict_nnet* trainParam$std[1]) + trainParam$mean[1])
 
 
 #cor(tested,predictions)
