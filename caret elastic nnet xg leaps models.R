@@ -4,11 +4,19 @@ library(glmnet)
 library(ModelMetrics)
 
 options(digits = 4)
+normalizeResponse <- "Y"
 
 data <- read.csv(file="states.csv",header = TRUE)
 #data2 <- data[,-1]
 
 seed <- sample(1:100,1)
+
+nr <- nrow(data3)
+nc <- ncol(data3)
+
+trainSetIndex <- (sample(1:(nr),(nr)*.8))
+testSetIndex <- c(1:nr)[(1:nr) %in% c(trainSetIndex)==FALSE]
+
 print(seed)
 set.seed(seed)
 
@@ -41,14 +49,6 @@ lapply(1:(ncol(data)-1),function(y)
         }))
         
         data3 <- cbind(data2,interactions,squared)
-        
-        nr <- nrow(data3)
-        nc <- ncol(data3)
-        
-        trainSetIndex <- (sample(1:(nr),(nr)*.8))
-        testSetIndex <- c(1:nr)[(1:nr) %in% c(trainSetIndex)==FALSE]
-        
-        normalizeResponse <- "Y"
         
         set.train <- data3[trainSetIndex, ]
         set.test <- data3[testSetIndex,]
