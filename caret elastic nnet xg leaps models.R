@@ -20,6 +20,8 @@ testSetIndex <- c(1:nr)[(1:nr) %in% c(trainSetIndex)==FALSE]
 print(seed)
 set.seed(seed)
 
+names(getModelInfo())
+
 lapply(1:(ncol(data)-1),function(y)
 {#y=2
         data2 <- data[,-1]
@@ -93,12 +95,22 @@ lapply(1:(ncol(data)-1),function(y)
         
         best_caret <- train(f, data = set.train,method = "leapBackward", trControl = train.control)
         
+        best_knn <- train(f, data = set.train,method = "knn", trControl = train.control)
+        plot(best_knn)
+        
+        best_rf <- train(f, data = set.train,method = "rf", trControl = train.control)
+        
+        plot(best_rf)
+        
         #best_caret$finalModel
         
         best_caret_model <- lm(cbind(set.train[,1,drop=FALSE],set.train[,gsub("\\`","",names(coef(best_caret$finalModel, best_caret$bestTune[,1])))[-1],drop=FALSE]))
-        summary(best_caret_model)
         
         predict_best_caret <- predict(best_caret_model,set.test[,-1,drop=FALSE])
+        
+        predict_best_knn <- predict(best_knn,set.test[,-1,drop=FALSE])
+        
+        predict_rf <- predict(best_rf,set.test[,-1,drop=FALSE])
         
         model_enet <- glmnet(data.matrix(set.train[,-1,drop=FALSE]), as.matrix(set.train[,1,drop=FALSE]), alpha = enet$finalModel$tuneValue$fraction, lambda=enet$finalModel$lambda, standardize = FALSE, family = "gaussian", type.measure="deviance")
         
@@ -119,7 +131,7 @@ lapply(1:(ncol(data)-1),function(y)
         #same as best parm's
         #predict_xg <- predict(model_xg,set.test[,-1])
         
-        predict_sets <- list(predict_enet,predict_glm,predict_xg,predict_best_caret,predict_nnet)
+        predict_sets <- list(predict_enet,predict_glm,predict_xg,predict_best_caret,predict_nnet,predict_best_knn,predict_rf)
         
         rmses <- lapply(1:length(predict_sets), function(x)
         {
