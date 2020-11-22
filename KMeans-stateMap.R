@@ -11,10 +11,13 @@ library(optpart)
 library(scclust)
 library(reticulate)
 library(qwraps2)
+library(DMwR)
 
 source("functions.R")
 
 seed <- sample(1:100,1)
+seed = seed + as.numeric(Sys.Date())
+
 print(seed)
 
 #Doing PCA on ZCA data results in same distances!
@@ -28,6 +31,12 @@ data2 <- data[,-1]
 data2 <- cbind(data2[,1:2],(data2[,3,drop=FALSE]^5),(data2[,4,drop=FALSE]^(1/3)),data2[,5:9],log(data2[,10,drop=FALSE]))
 rownames(data2) <- data[,1]
 
+data2 %>% gather() %>% head()
+
+ggplot(gather(data2), aes(value)) + 
+  geom_histogram(bins = 10) + 
+  facet_wrap(~key, scales = 'free_x')
+
 nr <- nrow(data2)
 
 #normalization (not being used)
@@ -40,8 +49,8 @@ if(normalizeResponse=="Y")
   
   #set <- whiten(as.matrix(set))
   set <- data2
-  set <- scale(data2,center=TRUE,scale=TRUE)
-  set <- whiten(as.matrix(set),method=c("ZCA"))
+  scaledData <- scale(data2,center=TRUE,scale=TRUE)
+  set <- whiten(as.matrix(scaledData),method=c("ZCA"))
   colnames(set) <- colnames(data2)
   set.pca <- prcomp(set, center=FALSE, scale=FALSE)
   set <- set.pca$x
@@ -51,6 +60,13 @@ if(normalizeResponse=="Y")
   colnames(set) <- colnames(data2)
   
 }
+
+data.frame(set) %>% gather() %>% head()
+
+ggplot(gather(data.frame(set)), aes(value)) + 
+  geom_histogram(bins = 10) + 
+  facet_wrap(~key, scales = 'free_x')
+
 
 best.dims = ncol(data2)
 
@@ -70,14 +86,16 @@ if(TRUE)
 
 #size=size/2
 
+numIter = 100
+
 #find best center via highest bss/wss ratio using cluster size of silhouette
 if(TRUE)
 {
 
-  sets <- lapply(1:numFolds, function(k)
+  sets <- mclapply(1:numIter, function(k)
   {#k=1
 
-    seed = k+1
+    seed = seed+k+1
     
     r <- NULL
     attempt <- 1
@@ -91,18 +109,18 @@ if(TRUE)
       )
       
     } 
-    print(attempt)
+    #print(attempt)
     #print(seed)
     set.seed(seed)
     const_kmeans <- constrained.kmeans(p=matrix(1,nrow(set)),a=set,std=FALSE,k=size,b=matrix(3,size),imax=1000,seed=seed,details=FALSE)
     
-    #inner_nums <- c(1:numFolds)[1:numFolds!=k]
-    inner_nums <- 1:numFolds
+    #inner_nums <- c(1:numIter)[1:numIter!=k]
+    inner_nums <- 1:numIter
     
-    errors <- lapply(inner_nums, function (i)
+    errors <- mclapply(inner_nums, function (i)
     {#i=1
 
-      seed = (k+1)^2
+      seed = (seed + k+1)^2
       
       r <- NULL
       attempt <- 1
@@ -116,7 +134,7 @@ if(TRUE)
         )
         
       } 
-      print(attempt)
+      #print(attempt)
       #print(seed)
       set.seed(seed)
       km2 <- kmeans(set, const_kmeans$centers)
@@ -126,7 +144,7 @@ if(TRUE)
       
       tss <- sum(abs(t)^2)
       
-      wss <- lapply(1:size, function(x)
+      wss <- mclapply(1:size, function(x)
       {#x=1
         iset <- t[which(t[,11]==x),-11,drop=FALSE]
         if(nrow(iset)==1)
@@ -143,11 +161,11 @@ if(TRUE)
       return(list(score,km2$centers))
     })
     
-    return(list(mean(unlist(lapply(errors, `[[`, 1))),const_kmeans$centers,const_kmeans$cluster))
+    return(list(mean(unlist(mclapply(errors, `[[`, 1))),const_kmeans$centers,const_kmeans$cluster))
     
   })
   
-  clusterScores <- unlist(lapply(sets, `[[`, 1))
+  clusterScores <- unlist(mclapply(sets, `[[`, 1))
   
   centersCluster <- sets[which(clusterScores==max(clusterScores))][[1]][[2]]
   
@@ -158,6 +176,11 @@ if(TRUE)
 }
 
 centersCluster
+
+hist(clusterScores)
+
+centers <- unscale(centersCluster,scaledData)
+unscaledCenters <- cbind(centers[,1:2],(centers[,3,drop=FALSE]^(1/5)),(centers[,4,drop=FALSE]^(3)),centers[,5:9],exp(centers[,10,drop=FALSE]))
 
 max(clusterScores)
 
@@ -189,11 +212,13 @@ states <- c("AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN
 hcolors=rainbow(16, start=0, end=1)[as.factor(mydata$Cluster)]
 hsymbols=c('circle', 'square', 'diamond','circle-open', 'square-open', 'diamond-open', 'cross', 'x')
 
-aggMeans <- cbind(aggregate(. ~ mydata$Cluster, data = data2, mean),mydata %>% group_by(Cluster) %>% summarise(no_rows = length(Cluster)))
-aggSD <- cbind(aggregate(. ~ mydata$Cluster, data = data2, SD),mydata %>% group_by(Cluster) %>% summarise(no_rows = length(Cluster)))
-
+aggMeans <- cbind(aggregate(. ~ mydata$Cluster, data = data[,-1], mean),mydata %>% group_by(Cluster) %>% summarise(no_rows = length(Cluster)))
+aggSD <- cbind(aggregate(. ~ mydata$Cluster, data = data[,-1], SD),mydata %>% group_by(Cluster) %>% summarise(no_rows = length(Cluster)))
 aggMeans[order(aggMeans$Poverty),]
 aggSD[order(aggMeans$Poverty),]
+
+aggMeans
+unscaledCenters
 
 mydata
 
@@ -205,7 +230,7 @@ fviz_contrib(set.pca, choice = "var", axes = 1:3)
 #no compression
 summary(set.pca)$importance[3,]
 
-fviz_contrib(set.pca, choice = "var", axes = 1:ncol(set))
+#fviz_contrib(set.pca, choice = "var", axes = 1:ncol(set))
 
 bg3d("white")
 

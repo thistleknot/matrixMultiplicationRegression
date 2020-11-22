@@ -1,8 +1,9 @@
 numFolds=10
 
 library(FNN)
-
+library(effects)
 library(lpSolve)
+library(car)
 
 cor2cov_1 <- function(R,S){
   diag(S) %*% R %*% diag(S)
@@ -664,8 +665,10 @@ back_step_partial_correlation_lm <- function(innerdata)
   return(innerdata)
 }
 
-diagnostic_plots_lm <- function(model, data)
-{#model
+diagnostic_plots_lm <- function(model)
+{#model <- best
+  
+  data <- model$model
   #dev.off()
   layout(matrix(c(1,2,3,4,5,6), 2, 3, byrow = TRUE))
   plot(model$fitted.values,model$residuals)
@@ -760,6 +763,7 @@ diagnostic_plots_lm <- function(model, data)
   
   layout(matrix(1:length(names), 2, 2, byrow = TRUE))
   eff.pres <- allEffects(model)
+  
   plot(eff.pres)
   
   leveragePlots(model)

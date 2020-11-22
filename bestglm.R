@@ -14,7 +14,12 @@ data2 <- data[,-1]
 
 data3 <- data.frame(scale(data2))
 
-chosen <- bestglm(cbind(data3[,-1],data3[,1,drop=FALSE]), IC = "CV", t=10, CVArgs = list(Method = "HTF", K = 10, REP = 1))
+data3 
+
+ptm <- proc.time()
+chosen <- bestglm(cbind(data3[,-1],data3[,1,drop=FALSE]), IC = "CV")
+timed <- proc.time() - ptm
+print(timed)
 
 selectedPredictors <- names(chosen$BestModel$coefficients)[-1]
 

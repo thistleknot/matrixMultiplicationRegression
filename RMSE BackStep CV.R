@@ -121,13 +121,13 @@ abline(lm(tested~predictions2))
 cor(tested,predictions2)
 
 #new
-diagnostic_plots_lm(pca.model, data)
-diagnostic_plots_lm(model, data)
+diagnostic_plots_lm(pca.model)
+diagnostic_plots_lm(model)
 
 finalModel <- lm(f,data2)
 summary(finalModel)
 
-diagnostic_plots_lm(finalModel,data)
+diagnostic_plots_lm(finalModel)
 
 #using prior derived PCA's, prior best.dim's
 
@@ -190,7 +190,7 @@ colnames(dataSet) <- c("State", colnames(data)[-1],"cooks.distance","leverage","
 summary(dataSet)
 dataSet
 
-diagnostic_plots_lm(finalModelPCA,data)
+diagnostic_plots_lm(finalModelPCA)
 fviz_contrib(final.pca, choice = "var", axes = 1:best.dims, top = best.dims)
 
 df <- data.table(dataSet[order(dataSet$Poverty),])
