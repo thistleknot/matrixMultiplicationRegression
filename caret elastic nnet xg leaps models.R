@@ -21,10 +21,10 @@ testSetIndex <- c(1:nr)[(1:nr) %in% c(trainSetIndex)==FALSE]
 print(seed)
 set.seed(seed)
 
-names(getModelInfo())
+#names(getModelInfo())
 
 lapply(1:(ncol(data)-1),function(y)
-{#y=2
+{#y=1
         data2 <- data[,-1]
         print(colnames(data2[,y,drop=FALSE]))
         data2 <- cbind(data2[,y,drop=FALSE],data2[,-y,drop=FALSE])
@@ -33,9 +33,6 @@ lapply(1:(ncol(data)-1),function(y)
         #derive interactions here
         combinations <- unique(combn(subsetNames, 2,simplify = FALSE))
         
-        as.double(unlist(data2[,"Income",drop=FALSE]))*as.double(unlist(data2[,"Population",drop=FALSE]))
-        
-        #temp <- combinations(length(subsetNames), 2, subsetNames, repeats.allowed = FALSE)
         interactions <- do.call(cbind,(lapply(combinations, function (b)
         {#b=combinations[[1]]
                 interactions <- data.frame(as.double(unlist(data2[,unlist(b)[1]]))*as.double(unlist(data2[,unlist(b)[2]])))
@@ -71,76 +68,101 @@ lapply(1:(ncol(data)-1),function(y)
         
         train.control <- trainControl(method = "cv", number = numFolds, allowParallel = TRUE, search = "grid")
         
-        invisible(capture.output(suppressMessages(suppressWarnings(xg <- train(f, data=set.train, method="xgbLinear", metric="RMSE", trControl=train.control, tuneLength = numFolds)))))
+        model_sets <- list("xgbLinear","enet","nnet","knn","rf","leapBackward")
+        names(model_sets) <- model_sets
         
-        plot(xg)
-        
-        xg$finalModel$tuneValue
-        
-        enet <- train(f, data=set.train, method="enet", trControl=train.control)
-        
-        enet$finalModel$tuneValue
-        
-        plot(enet)
-        
-        #coef(xg$finalModel,s=xg$finalModel$tuneValue$lambda)
-        #coef(enet$finalModel,enet$bestTune[,1])
-        
-        #really bad values
-        model_glm <- glmnet(data.matrix(set.train[,-1,drop=FALSE]), as.matrix(set.train[,1,drop=FALSE]), alpha = enet$finalModel$tuneValue$fraction, lambda=enet$finalModel$lambda, standardize = FALSE, family = "gaussian", type.measure="deviance")
-        #predicts <- predict.glmnet(model,data.matrix(set.test[,-1,drop=FALSE]),alpha = enet$finalModel$tuneValue$fraction, lambda=enet$finalModel$lambda)
-        
-        invisible(capture.output(suppressMessages(suppressWarnings(model_nnet <- train(f, data = set.train,method = "nnet", trControl = train.control)))))
-        
-        plot(model_nnet)
-        
-        best_caret <- train(f, data = set.train,method = "leapBackward", trControl = train.control)
-        
-        best_knn <- train(f, data = set.train,method = "knn", trControl = train.control)
-        plot(best_knn)
-        
-        best_rf <- train(f, data = set.train,method = "rf", trControl = train.control)
-        
-        plot(best_rf)
-        
-        #best_caret$finalModel
-        
-        best_caret_model <- lm(cbind(set.train[,1,drop=FALSE],set.train[,gsub("\\`","",names(coef(best_caret$finalModel, best_caret$bestTune[,1])))[-1],drop=FALSE]))
-        
-        predict_best_caret <- predict(best_caret_model,set.test[,-1,drop=FALSE])
-        
-        predict_best_knn <- predict(best_knn,set.test[,-1,drop=FALSE])
-        
-        predict_rf <- predict(best_rf,set.test[,-1,drop=FALSE])
-        
-        model_enet <- glmnet(data.matrix(set.train[,-1,drop=FALSE]), as.matrix(set.train[,1,drop=FALSE]), alpha = enet$finalModel$tuneValue$fraction, lambda=enet$finalModel$lambda, standardize = FALSE, family = "gaussian", type.measure="deviance")
-        
-        plot(coef(model_enet))
-        
-        predict_glm <- predict.glmnet(model_glm,data.matrix(set.test[,-1,drop=FALSE]),lambda=model_enet$finalModel$tuneValue$lambda,s0=model_enet$finalModel$tuneValue$fraction)
-        
-        model_xg <- glmnet(data.matrix(set.train[,-1,drop=FALSE]), as.matrix(set.train[,1,drop=FALSE]), alpha = xg$finalModel$tuneValue$alpha, lambda=xg$finalModel$lambda, standardize = FALSE, family = "gaussian", type.measure="deviance")
-        
-        plot(coef(model_xg)[,ncol(coef(model_xg))])
-        
-        predict_xg <- predict.glmnet(model_xg,data.matrix(set.test[,-1,drop=FALSE]), alpha = xg$finalModel$tuneValue$alpha, lambda=xg$finalModel$lambda)
-        predict_xg <- predict_xg[,ncol(predict_xg)]
-        predict_nnet <- predict(model_nnet, set.test[,-1])
-        
-        predict_enet <- predict(model_enet,as.matrix(set.test[,-1]))
-        
-        #same as best parm's
-        #predict_xg <- predict(model_xg,set.test[,-1])
-        
-        predict_sets <- list(predict_enet,predict_glm,predict_xg,predict_best_caret,predict_nnet,predict_best_knn,predict_rf)
-        
-        rmses <- lapply(1:length(predict_sets), function(x)
-        {
-                
-                plot((set.test[,1]* trainParam$std[1]) + trainParam$mean[1],(predict_sets[[x]]* trainParam$std[1]) + trainParam$mean[1])
-                return <- rmse((set.test[,1]* trainParam$std[1]) + trainParam$mean[1],(predict_sets[[x]]* trainParam$std[1]) + trainParam$mean[1])
+        models <- lapply(1:length(model_sets), function(h)
+        {#h=4
+                invisible(capture.output(suppressMessages(suppressWarnings(model <- train(f, data=set.train, method=model_sets[[h]], metric="RMSE", trControl=train.control, tuneLength = numFolds)))))
+                return(model)
         })
+        
+        names(models) <- model_sets
+        
+        predictions <- lapply(1:length(model_sets), function(p)
+        {#p=1
+                
+                #predict(models[[p]],set.test[,-1,drop=FALSE])
+                switch(model_sets[[p]],
+                       
+                       xgbLinear = {
+                               model_xg <- glmnet(data.matrix(set.train[,-1,drop=FALSE]), as.matrix(set.train[,1,drop=FALSE]), alpha = models[[p]]$finalModel$tuneValue$alpha, lambda=models[[p]]$finalModel$lambda, standardize = FALSE, family = "gaussian", type.measure="deviance")
+                               predict_xg <- predict.glmnet(model_xg,data.matrix(set.test[,-1,drop=FALSE]), alpha = models[[p]]$finalModel$tuneValue$alpha, lambda=models[[p]]$finalModel$lambda)
+                               return(predict_xg[,ncol(predict_xg)])
+                               #return(predict(models[[p]],set.test[,-1,drop=FALSE]))
+                       },
+                       enet = {
+                               enet = models[["enet"]]
+                               model_enet <- glmnet(data.matrix(set.train[,-1,drop=FALSE]), as.matrix(set.train[,1,drop=FALSE]), alpha = enet$finalModel$tuneValue$fraction, lambda=enet$finalModel$lambda, standardize = FALSE, family = "gaussian", type.measure="deviance")
+                               predict_enet <- predict(model_enet,as.matrix(set.test[,-1]))
+                               return(predict_enet)
+                               #return(predict(models[[p]],set.test[,-1,drop=FALSE]))
+                       },
+                       nnet = {
+                               return(predict(models[[p]],set.test[,-1,drop=FALSE]))
+                               
+                       },
+                       knn = {
+                               return(predict(models[[p]],set.test[,-1,drop=FALSE]))
+                               
+                       },
+                       rf = {
+                               return(predict(models[[p]],set.test[,-1,drop=FALSE]))
+                       },
+                       leapBackward = {
+                               leaps_model = models[["leapBackward"]]
+                               best_leaps_model <- lm(cbind(set.train[,1,drop=FALSE],set.train[,gsub("\\`","",names(coef(leaps_model$finalModel, leaps_model$bestTune[,1])))[-1],drop=FALSE]))
+                               predict_best_leaps <- predict(best_leaps_model,set.test[,-1,drop=FALSE])
+                               return(predict_best_leaps)
+                               #return(predict(models[[p]],set.test[,-1,drop=FALSE]))
+                       })
+                
+        })
+
+        names(predictions) <- model_sets
+        predictions
+        
+        rmses <- lapply(1:length(model_sets), function(x)
+        {
+                return <- rmse((set.test[,1]* trainParam$std[1]) + trainParam$mean[1],(predictions[[x]]* trainParam$std[1]) + trainParam$mean[1])
+        })
+        names(rmses) <- model_sets
         print(unlist(rmses))
-        print(summary(best_caret_model))
+        
+        best <- which.min(unlist(rmses))
+        print(cbind(unlist(predictions[best]),set.test[,1]))
+        
+        plot((set.test[,1]* trainParam$std[1]) + trainParam$mean[1],(predictions[[best]]* trainParam$std[1]) + trainParam$mean[1])
+        
+        print(paste("correlation:", round(cor(unlist(predictions[which.min(unlist(rmses))]),set.test[,1]),4)))
+        
+        switch(names(best),
+               xgbLinear = {
+                       model_xg <- glmnet(data.matrix(set.train[,-1,drop=FALSE]), as.matrix(set.train[,1,drop=FALSE]), alpha = models[["xgbLinear"]]$finalModel$tuneValue$alpha, lambda=models[["xgbLinear"]]$finalModel$lambda, standardize = FALSE, family = "gaussian", type.measure="deviance")
+                       models[["xgbLinear"]]$finalModel$tuneValue
+                       plot(coef(model_xg)[,ncol(coef(model_xg))])
+                       plot(models[[best]])
+               },
+               enet = {
+                       model_enet <- glmnet(data.matrix(set.train[,-1,drop=FALSE]), as.matrix(set.train[,1,drop=FALSE]), alpha = models[["enet"]]$finalModel$tuneValue$fraction, lambda=models[["enet"]]$finalModel$lambda, standardize = FALSE, family = "gaussian", type.measure="deviance")
+                       models[["enet"]]$finalModel$tuneValue
+                       plot(coef(model_enet))
+                       plot(models[[best]])
+               },
+               nnet = {
+                       plot(models[[best]])
+               },
+               knn = {
+                       plot(models[[best]])
+               },
+               rf = {
+                       plot(models[[best]])
+               },
+               leapBackward = {
+                       best_caret = models[["leapBackward"]]
+                       best_leaps_model <- lm(cbind(set.train[,1,drop=FALSE],set.train[,gsub("\\`","",names(coef(models[["leapBackward"]]$finalModel, models[["leapBackward"]]$bestTune[,1])))[-1],drop=FALSE]))
+                       print(summary(models[[best]]))
+                       plot(models[[best]])
+               })
         
 })
