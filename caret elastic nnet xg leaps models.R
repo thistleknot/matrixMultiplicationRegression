@@ -25,6 +25,7 @@ set.seed(seed)
 
 lapply(1:(ncol(data)-1),function(y)
 {#y=1
+        cat("\n")
         data2 <- data[,-1]
         print(colnames(data2[,y,drop=FALSE]))
         data2 <- cbind(data2[,y,drop=FALSE],data2[,-y,drop=FALSE])
@@ -142,27 +143,37 @@ lapply(1:(ncol(data)-1),function(y)
                        models[["xgbLinear"]]$finalModel$tuneValue
                        plot(coef(model_xg)[,ncol(coef(model_xg))])
                        plot(models[[best]])
+                       (coef(model_xg)[,ncol(coef(model_xg))])
+                       df <- data.frame(as.matrix((coef(model_xg)[,ncol(coef(model_xg))])))
+                       print(df[df!=0,,drop=FALSE])
+                       
                },
                enet = {
                        model_enet <- glmnet(data.matrix(set.train[,-1,drop=FALSE]), as.matrix(set.train[,1,drop=FALSE]), alpha = models[["enet"]]$finalModel$tuneValue$fraction, lambda=models[["enet"]]$finalModel$lambda, standardize = FALSE, family = "gaussian", type.measure="deviance")
-                       models[["enet"]]$finalModel$tuneValue
+                       print(models[["enet"]]$finalModel$tuneValue)
                        plot(coef(model_enet))
                        plot(models[[best]])
+                       df <- data.frame(as.matrix(model_enet$beta))
+                       print(df[df!=0,,drop=FALSE])
                },
                nnet = {
-                       plot(models[[best]])
+                       plot(models[["nnet"]])
+                       print(models[["nnet"]]$bestTune)
                },
                knn = {
-                       plot(models[[best]])
+                       plot(models[["knn"]])
+                       print(models[["knn"]]$bestTune)
+                       
                },
                rf = {
                        plot(models[[best]])
+                       print(models[["rf"]]$bestTune)
                },
                leapBackward = {
                        best_caret = models[["leapBackward"]]
                        best_leaps_model <- lm(cbind(set.train[,1,drop=FALSE],set.train[,gsub("\\`","",names(coef(models[["leapBackward"]]$finalModel, models[["leapBackward"]]$bestTune[,1])))[-1],drop=FALSE]))
-                       print(summary(models[[best]]))
                        plot(models[[best]])
+                       print(summary(best_leaps_model))
                })
-        
+        cat("\n")
 })
